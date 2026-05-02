@@ -1,0 +1,816 @@
+@{
+    ViewData["Title"] = "Institutions";
+    ViewData["ActivePage"] = "Institutions";
+    Layout = "~/Views/Shared/_DashboardLayout.cshtml";
+}
+
+<style>
+    @@keyframes fadeUp {
+        from { opacity: 0; transform: translateY(16px); }
+        to   { opacity: 1; transform: translateY(0); }
+    }
+    @@keyframes fadeIn {
+        from { opacity: 0; }
+        to   { opacity: 1; }
+    }
+    @@keyframes slideUp {
+        from { opacity: 0; transform: translateY(32px) scale(0.98); }
+        to   { opacity: 1; transform: translateY(0) scale(1); }
+    }
+
+    .fade-up   { opacity: 0; animation: fadeUp 0.45s ease forwards; }
+    .fade-up-1 { animation-delay: 0.05s; }
+    .fade-up-2 { animation-delay: 0.15s; }
+
+    #institutionModal, #confirmModal {
+        display: none;
+        animation: fadeIn 0.2s ease forwards;
+    }
+    #institutionModal.open, #confirmModal.open { display: flex; }
+    #modalBox, #confirmBox {
+        animation: slideUp 0.28s cubic-bezier(0.34, 1.4, 0.64, 1) forwards;
+    }
+
+    .inst-row { transition: background 0.15s ease; }
+    .inst-row:hover { background: var(--color-surface, #f8fafc); }
+
+    @@keyframes spin { to { transform: rotate(360deg); } }
+    .spinner { animation: spin 0.7s linear infinite; }
+
+    .type-badge-bank {
+        background: #dbeafe;
+        color: #1d4ed8;
+        border: 1px solid #bfdbfe;
+    }
+    .type-badge-nonbank {
+        background: #f3e8ff;
+        color: #7e22ce;
+        border: 1px solid #e9d5ff;
+    }
+
+    /* ── View modal ── */
+    #viewModal {
+        display: none;
+        animation: fadeIn 0.2s ease forwards;
+    }
+    #viewModal.open { display: flex; }
+    #viewModalBox {
+        animation: slideUp 0.28s cubic-bezier(0.34, 1.4, 0.64, 1) forwards;
+    }
+
+    /* Hero: no longer uses position:relative since close btn is in the flex row */
+    .view-hero {
+        background: var(--color-surface, #f8fafc);
+        border-bottom: 1px solid var(--color-border, #e5e7eb);
+        padding: 20px 20px 16px;
+    }
+
+    .view-avatar {
+        width: 52px; height: 52px;
+        border-radius: 14px;
+        display: flex; align-items: center; justify-content: center;
+        font-size: 20px; font-weight: 500;
+        flex-shrink: 0;
+    }
+    .view-avatar-bank    { background: #dbeafe; color: #1d4ed8; border: 1px solid #bfdbfe; }
+    .view-avatar-nonbank { background: #f3e8ff; color: #7e22ce; border: 1px solid #e9d5ff; }
+
+    .view-section-label {
+        font-size: 10px;
+        font-weight: 600;
+        letter-spacing: 0.08em;
+        text-transform: uppercase;
+        color: var(--color-text-muted);
+        margin-bottom: 10px;
+    }
+
+    .view-field-label {
+        font-size: 11px;
+        color: var(--color-text-muted);
+        margin-bottom: 3px;
+    }
+
+    .view-field-value        { font-size: 13px; color: var(--color-text-primary); }
+    .view-field-value.empty  { color: var(--color-text-muted); font-style: italic; }
+
+    .view-code-chip {
+        display: inline-block;
+        font-family: ui-monospace, 'SF Mono', Menlo, monospace;
+        font-size: 12px;
+        padding: 2px 8px;
+        border-radius: 6px;
+        background: var(--color-surface, #f1f5f9);
+        border: 1px solid var(--color-border, #e2e8f0);
+        color: var(--color-text-secondary);
+    }
+
+    .view-pill-list { display: flex; flex-wrap: wrap; gap: 5px; margin-top: 4px; }
+
+    .view-pill {
+        font-size: 11px;
+        font-family: ui-monospace, 'SF Mono', Menlo, monospace;
+        padding: 2px 9px;
+        border-radius: 20px;
+        background: var(--color-surface, #f1f5f9);
+        border: 1px solid var(--color-border, #e2e8f0);
+        color: var(--color-text-secondary);
+    }
+
+    .view-timestamps {
+        display: grid;
+        grid-template-columns: 1fr 1fr;
+        gap: 12px;
+        padding: 12px 14px;
+        background: var(--color-surface, #f8fafc);
+        border-radius: 12px;
+        border: 1px solid var(--color-border, #e5e7eb);
+    }
+
+    .view-ts-label {
+        font-size: 10px;
+        font-weight: 600;
+        letter-spacing: 0.07em;
+        text-transform: uppercase;
+        color: var(--color-text-muted);
+        margin-bottom: 2px;
+    }
+
+    .view-ts-value { font-size: 12px; color: var(--color-text-secondary); }
+
+    .view-divider {
+        height: 1px;
+        background: var(--color-border, #e5e7eb);
+    }
+</style>
+
+@* ── Page header ── *@
+<div class="flex items-center justify-between mb-6 fade-up fade-up-1">
+    <div>
+        <h1 class="text-text-primary text-2xl font-semibold font-display">Institutions</h1>
+        <p class="text-text-muted text-sm mt-0.5">Manage banks and non-bank institutions.</p>
+    </div>
+    <button onclick="openAddModal()"
+            class="flex items-center gap-2 px-4 py-2.5 bg-accent-500 hover:bg-accent-600
+                   text-white text-sm font-medium rounded-xl transition-colors shadow-sm">
+        <svg class="w-4 h-4" fill="none" stroke="currentColor" stroke-width="2.5" viewBox="0 0 24 24">
+            <path d="M12 5v14M5 12h14"/>
+        </svg>
+        Add Institution
+    </button>
+</div>
+
+@* ── Alert area ── *@
+<div id="alertArea" class="hidden mb-4"></div>
+
+@* ── Institutions table card ── *@
+<div class="bg-surface-card border border-border rounded-2xl shadow-sm overflow-hidden fade-up fade-up-2">
+    <div class="overflow-x-auto">
+        <table class="w-full text-sm">
+            <thead>
+                <tr class="border-b border-border bg-surface">
+                    <th class="text-left text-xs font-semibold text-text-muted px-5 py-3 uppercase tracking-wide">Name</th>
+                    <th class="text-left text-xs font-semibold text-text-muted px-5 py-3 uppercase tracking-wide">Type</th>
+                    <th class="text-left text-xs font-semibold text-text-muted px-5 py-3 uppercase tracking-wide hidden md:table-cell">Code</th>
+                    <th class="text-left text-xs font-semibold text-text-muted px-5 py-3 uppercase tracking-wide hidden lg:table-cell">Domain</th>
+                    <th class="text-left text-xs font-semibold text-text-muted px-5 py-3 uppercase tracking-wide hidden sm:table-cell">Created</th>
+                    <th class="text-right text-xs font-semibold text-text-muted px-5 py-3 uppercase tracking-wide">Actions</th>
+                </tr>
+            </thead>
+            <tbody id="institutionsTableBody">
+                <tr>
+                    <td colspan="6" class="text-center py-12 text-text-muted">
+                        <svg class="w-5 h-5 mx-auto mb-2 spinner text-brand-400" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24">
+                            <path d="M21 12a9 9 0 1 1-6.219-8.56"/>
+                        </svg>
+                        <span class="text-xs">Loading institutions...</span>
+                    </td>
+                </tr>
+            </tbody>
+        </table>
+    </div>
+    <div class="px-5 py-3 border-t border-border bg-surface flex items-center justify-between">
+        <span id="institutionCount" class="text-xs text-text-muted">--</span>
+        <span class="text-xs text-text-muted">PTSA Monitor - Institutions</span>
+    </div>
+</div>
+
+@* ══════════════ VIEW INSTITUTION MODAL ══════════════ *@
+<div id="viewModal"
+     class="fixed inset-0 z-50 bg-black/40 backdrop-blur-sm items-center justify-center px-4">
+    <div id="viewModalBox"
+         class="bg-surface-card border border-border rounded-2xl shadow-xl w-full max-w-lg max-h-[90vh] overflow-y-auto">
+
+        @* Hero — close button is part of the flex row so it never overlays the avatar *@
+        <div class="view-hero">
+            <div class="flex items-start gap-3.5">
+                <div id="viewAvatarWrap" class="flex-shrink-0"></div>
+                <div class="flex-1 min-w-0 pt-0.5">
+                    <p id="viewName" class="text-text-primary font-semibold text-base leading-snug mb-0.5"></p>
+                    <p id="viewShortName" class="text-text-muted text-xs mb-2.5"></p>
+                    <span id="viewTypeBadge" class="inline-flex items-center gap-1.5 text-xs font-medium px-2.5 py-0.5 rounded-full"></span>
+                </div>
+                <button onclick="closeViewModal()"
+                        class="flex-shrink-0 w-7 h-7 flex items-center justify-center
+                               rounded-lg bg-surface-card border border-border
+                               text-text-muted hover:text-text-primary transition-colors mt-0.5">
+                    <svg fill="none" stroke="currentColor" stroke-width="2.5" viewBox="0 0 24 24" class="w-3 h-3">
+                        <path d="M18 6 6 18M6 6l12 12"/>
+                    </svg>
+                </button>
+            </div>
+        </div>
+
+        @* Body *@
+        <div class="px-6 py-5 space-y-5">
+
+            @* Identity *@
+            <div>
+                <p class="view-section-label">Identity</p>
+                <div class="grid grid-cols-2 gap-4">
+                    <div>
+                        <p class="view-field-label">Institution code</p>
+                        <span id="viewCode" class="view-code-chip"></span>
+                    </div>
+                    <div>
+                        <p class="view-field-label">Domain</p>
+                        <p id="viewDomain" class="view-field-value"></p>
+                    </div>
+                </div>
+            </div>
+
+            <div class="view-divider"></div>
+
+            @* Contact *@
+            <div>
+                <p class="view-section-label">Contact</p>
+                <p class="view-field-label">Emails</p>
+                <div id="viewEmails" class="view-pill-list"></div>
+            </div>
+
+            <div class="view-divider"></div>
+
+            @* Technical *@
+            <div>
+                <p class="view-section-label">Technical</p>
+                <div class="grid grid-cols-2 gap-4 mb-4">
+                    <div>
+                        <p class="view-field-label">Bank BINs</p>
+                        <div id="viewBins" class="view-pill-list"></div>
+                    </div>
+                    <div>
+                        <p class="view-field-label">Terminal IDs</p>
+                        <div id="viewTerminals" class="view-pill-list"></div>
+                    </div>
+                </div>
+                <div>
+                    <p class="view-field-label">Sub codes</p>
+                    <div id="viewSubCodes" class="view-pill-list"></div>
+                </div>
+            </div>
+
+            @* Timestamps *@
+            <div class="view-timestamps">
+                <div>
+                    <p class="view-ts-label">Created</p>
+                    <p id="viewCreatedAt" class="view-ts-value"></p>
+                </div>
+                <div>
+                    <p class="view-ts-label">Last updated</p>
+                    <p id="viewUpdatedAt" class="view-ts-value"></p>
+                </div>
+            </div>
+
+        </div>
+
+        @* Footer *@
+        <div class="px-6 py-4 border-t border-border flex justify-end gap-2.5">
+            <button onclick="closeViewModal()"
+                    class="px-4 py-2 text-sm text-text-secondary hover:text-text-primary
+                           border border-border rounded-xl transition-colors">
+                Close
+            </button>
+            <button id="viewEditBtn"
+                    class="flex items-center gap-2 px-5 py-2 bg-accent-500 hover:bg-accent-600
+                           text-white text-sm font-medium rounded-xl transition-colors">
+                <svg class="w-3.5 h-3.5" fill="none" stroke="currentColor" stroke-width="2.2" viewBox="0 0 24 24">
+                    <path d="M11 4H4a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2v-7"/>
+                    <path d="M18.5 2.5a2.121 2.121 0 0 1 3 3L12 15l-4 1 1-4 9.5-9.5z"/>
+                </svg>
+                Edit Institution
+            </button>
+        </div>
+
+    </div>
+</div>
+
+@* ══════════════ ADD/EDIT INSTITUTION MODAL ══════════════ *@
+<div id="institutionModal"
+     class="fixed inset-0 z-50 bg-black/40 backdrop-blur-sm items-center justify-center px-4">
+    <div id="modalBox"
+         class="bg-surface-card border border-border rounded-2xl shadow-xl w-full max-w-lg max-h-[90vh] overflow-y-auto">
+
+        <div class="flex items-center justify-between px-6 py-4 border-b border-border">
+            <h2 id="modalTitle" class="text-text-primary font-semibold text-base">Add Institution</h2>
+            <button onclick="closeModal()"
+                    class="w-7 h-7 flex items-center justify-center rounded-lg
+                           text-text-muted hover:text-text-primary hover:bg-surface transition-colors">
+                <svg fill="none" stroke="currentColor" stroke-width="2.5" viewBox="0 0 24 24" class="w-4 h-4">
+                    <path d="M18 6 6 18M6 6l12 12"/>
+                </svg>
+            </button>
+        </div>
+
+        <form id="institutionForm" class="px-6 py-5 space-y-4">
+            <div id="modalAlert" class="hidden"></div>
+            <input type="hidden" id="editInstitutionId" value="" />
+
+            <div>
+                <label class="text-xs font-medium text-text-secondary block mb-1">Institution Name *</label>
+                <input id="instName" type="text" placeholder="e.g. First Bank of Nigeria"
+                       class="w-full px-3 py-2.5 bg-surface border border-border rounded-xl text-sm
+                              text-text-primary placeholder-text-muted focus:outline-none
+                              focus:border-brand-400 focus:ring-2 focus:ring-brand-100 transition-colors" required />
+            </div>
+
+            <div class="grid grid-cols-2 gap-3">
+                <div>
+                    <label class="text-xs font-medium text-text-secondary block mb-1">Type</label>
+                    <select id="instType"
+                            class="w-full px-3 py-2.5 bg-surface border border-border rounded-xl text-sm
+                                   text-text-primary focus:outline-none focus:border-brand-400
+                                   focus:ring-2 focus:ring-brand-100 transition-colors">
+                        <option value="Bank">Bank</option>
+                        <option value="Non Bank">Non Bank</option>
+                    </select>
+                </div>
+                <div>
+                    <label class="text-xs font-medium text-text-secondary block mb-1">Short Name</label>
+                    <input id="instShortName" type="text" placeholder="e.g. FBN"
+                           class="w-full px-3 py-2.5 bg-surface border border-border rounded-xl text-sm
+                                  text-text-primary placeholder-text-muted focus:outline-none
+                                  focus:border-brand-400 focus:ring-2 focus:ring-brand-100 transition-colors" />
+                </div>
+            </div>
+
+            <div class="grid grid-cols-2 gap-3">
+                <div>
+                    <label class="text-xs font-medium text-text-secondary block mb-1">Institution Code</label>
+                    <input id="instCode" type="text" placeholder="e.g. 011"
+                           class="w-full px-3 py-2.5 bg-surface border border-border rounded-xl text-sm
+                                  text-text-primary placeholder-text-muted focus:outline-none
+                                  focus:border-brand-400 focus:ring-2 focus:ring-brand-100 transition-colors" />
+                </div>
+                <div>
+                    <label class="text-xs font-medium text-text-secondary block mb-1">Domain</label>
+                    <input id="instDomain" type="text" placeholder="e.g. firstbanknigeria.com"
+                           class="w-full px-3 py-2.5 bg-surface border border-border rounded-xl text-sm
+                                  text-text-primary placeholder-text-muted focus:outline-none
+                                  focus:border-brand-400 focus:ring-2 focus:ring-brand-100 transition-colors" />
+                </div>
+            </div>
+
+            <div>
+                <label class="text-xs font-medium text-text-secondary block mb-1">Emails</label>
+                <input id="instEmails" type="text" placeholder="comma-separated emails"
+                       class="w-full px-3 py-2.5 bg-surface border border-border rounded-xl text-sm
+                              text-text-primary placeholder-text-muted focus:outline-none
+                              focus:border-brand-400 focus:ring-2 focus:ring-brand-100 transition-colors" />
+            </div>
+
+            <div class="grid grid-cols-2 gap-3">
+                <div>
+                    <label class="text-xs font-medium text-text-secondary block mb-1">Bank BINs</label>
+                    <input id="instBins" type="text" placeholder="comma-separated BINs"
+                           class="w-full px-3 py-2.5 bg-surface border border-border rounded-xl text-sm
+                                  text-text-primary placeholder-text-muted focus:outline-none
+                                  focus:border-brand-400 focus:ring-2 focus:ring-brand-100 transition-colors" />
+                </div>
+                <div>
+                    <label class="text-xs font-medium text-text-secondary block mb-1">Terminal IDs</label>
+                    <input id="instTerminals" type="text" placeholder="comma-separated IDs"
+                           class="w-full px-3 py-2.5 bg-surface border border-border rounded-xl text-sm
+                                  text-text-primary placeholder-text-muted focus:outline-none
+                                  focus:border-brand-400 focus:ring-2 focus:ring-brand-100 transition-colors" />
+                </div>
+            </div>
+
+            <div>
+                <label class="text-xs font-medium text-text-secondary block mb-1">Sub Codes</label>
+                <input id="instSubCodes" type="text" placeholder="comma-separated sub codes"
+                       class="w-full px-3 py-2.5 bg-surface border border-border rounded-xl text-sm
+                              text-text-primary placeholder-text-muted focus:outline-none
+                              focus:border-brand-400 focus:ring-2 focus:ring-brand-100 transition-colors" />
+            </div>
+
+            <div>
+                <label class="text-xs font-medium text-text-secondary block mb-1">Logo</label>
+                <input id="instLogo" type="file" accept="image/*"
+                       class="w-full px-3 py-2.5 bg-surface border border-border rounded-xl text-sm
+                              text-text-primary file:mr-3 file:py-1.5 file:px-3 file:rounded-lg
+                              file:border-0 file:text-xs file:font-medium file:bg-brand-50
+                              file:text-brand-600 hover:file:bg-brand-100 transition-colors" />
+                <p class="text-text-muted text-[10px] mt-1">Supported formats: PNG, JPG, GIF. Max 2MB.</p>
+            </div>
+        </form>
+
+        <div class="px-6 py-4 border-t border-border flex justify-end gap-3">
+            <button onclick="closeModal()"
+                    class="px-4 py-2 text-sm text-text-secondary hover:text-text-primary
+                           border border-border rounded-xl transition-colors">
+                Cancel
+            </button>
+            <button id="saveBtn" onclick="saveInstitution()"
+                    class="px-5 py-2 bg-accent-500 hover:bg-accent-600 text-white
+                           text-sm font-medium rounded-xl transition-colors flex items-center gap-2">
+                <span id="saveBtnText">Create Institution</span>
+                <svg id="saveBtnSpinner" class="hidden w-4 h-4 spinner" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24">
+                    <path d="M21 12a9 9 0 1 1-6.219-8.56"/>
+                </svg>
+            </button>
+        </div>
+    </div>
+</div>
+
+@* ══════════════ CONFIRM MODAL ══════════════ *@
+<div id="confirmModal"
+     class="fixed inset-0 z-50 bg-black/40 backdrop-blur-sm items-center justify-center px-4">
+    <div id="confirmBox"
+         class="bg-surface-card border border-border rounded-2xl shadow-xl w-full max-w-sm px-6 py-6">
+        <div id="confirmIcon" class="w-10 h-10 rounded-full flex items-center justify-center mx-auto mb-4"></div>
+        <h3 id="confirmTitle" class="text-text-primary font-semibold text-base text-center mb-1"></h3>
+        <p id="confirmMessage" class="text-text-muted text-sm text-center mb-5"></p>
+        <div class="flex gap-3">
+            <button onclick="closeConfirm()"
+                    class="flex-1 py-2 text-sm text-text-secondary border border-border rounded-xl hover:bg-surface transition-colors">
+                Cancel
+            </button>
+            <button id="confirmActionBtn"
+                    class="flex-1 py-2 text-sm font-medium text-white rounded-xl transition-colors">
+                Confirm
+            </button>
+        </div>
+    </div>
+</div>
+
+@section Scripts {
+<script>
+    let allInstitutions = [];
+    let pendingAction   = null;
+    let isEditing       = false;
+
+    // ── Load ────────────────────────────────────────────────────────────────
+    async function loadInstitutions() {
+        try {
+            const res = await fetch('/Dashboard/Institutions/GetAll');
+            if (!res.ok) throw new Error('Failed to fetch');
+            allInstitutions = await res.json();
+            renderTable(allInstitutions);
+        } catch {
+            document.getElementById('institutionsTableBody').innerHTML = `
+                <tr><td colspan="6" class="text-center py-12 text-text-muted text-xs">
+                    Failed to load institutions. Please refresh the page.
+                </td></tr>`;
+        }
+    }
+
+    // ── Render table ────────────────────────────────────────────────────────
+    function renderTable(institutions) {
+        const tbody   = document.getElementById('institutionsTableBody');
+        const countEl = document.getElementById('institutionCount');
+        countEl.textContent = `${institutions.length} institution${institutions.length !== 1 ? 's' : ''} total`;
+
+        if (institutions.length === 0) {
+            tbody.innerHTML = `
+                <tr><td colspan="6" class="text-center py-12 text-text-muted text-xs">
+                    No institutions found. Add one to get started.
+                </td></tr>`;
+            return;
+        }
+
+        tbody.innerHTML = institutions.map(inst => {
+            const isBank    = (inst.institutionType || '').toLowerCase() === 'bank';
+            const typeClass = isBank ? 'type-badge-bank' : 'type-badge-nonbank';
+            const createdAt = inst.createdAt
+                ? new Date(inst.createdAt).toLocaleDateString('en-GB', { day:'2-digit', month:'short', year:'numeric' })
+                : '--';
+
+            return `
+            <tr class="inst-row border-b border-border last:border-0" id="row-${inst.institutionId}">
+                <td class="px-5 py-3.5">
+                    <div class="flex items-center gap-3">
+                        ${inst.institutionLogo
+                            ? `<img src="${escHtml(inst.institutionLogo)}" alt=""
+                                   class="w-8 h-8 rounded-lg object-contain border border-border flex-shrink-0" />`
+                            : `<div class="w-8 h-8 rounded-lg bg-brand-50 border border-brand-100
+                                          flex items-center justify-center flex-shrink-0">
+                                 <span class="text-xs font-semibold text-brand-600">
+                                     ${(inst.institutionName || '?')[0].toUpperCase()}
+                                 </span>
+                               </div>`
+                        }
+                        <div>
+                            <span class="text-text-primary font-medium text-sm">${escHtml(inst.institutionName || '--')}</span>
+                            ${inst.institutionShortName
+                                ? `<span class="text-text-muted text-xs ml-1">(${escHtml(inst.institutionShortName)})</span>`
+                                : ''}
+                        </div>
+                    </div>
+                </td>
+                <td class="px-5 py-3.5">
+                    <span class="text-xs px-2.5 py-0.5 rounded-full font-medium ${typeClass}">
+                        ${escHtml(inst.institutionType || '--')}
+                    </span>
+                </td>
+                <td class="px-5 py-3.5 text-text-secondary text-xs hidden md:table-cell">${escHtml(inst.institutionCode || '--')}</td>
+                <td class="px-5 py-3.5 text-text-secondary text-xs hidden lg:table-cell">${escHtml(inst.institutionDomain || '--')}</td>
+                <td class="px-5 py-3.5 text-text-muted text-xs hidden sm:table-cell">${createdAt}</td>
+                <td class="px-5 py-3.5 text-right">
+                    <div class="flex items-center justify-end gap-2">
+                        <button onclick="openViewModal(${inst.institutionId})"
+                                title="View institution"
+                                class="text-xs px-3 py-1.5 rounded-lg border border-border
+                                       text-text-secondary hover:bg-surface transition-colors">
+                            View
+                        </button>
+                        <button onclick="openEditModal(${inst.institutionId})"
+                                title="Edit institution"
+                                class="text-xs px-3 py-1.5 rounded-lg border border-brand-200
+                                       text-brand-600 hover:bg-brand-50 transition-colors">
+                            Edit
+                        </button>
+                        <button onclick="confirmDelete(${inst.institutionId}, '${escHtml(inst.institutionName)}')"
+                                title="Delete institution"
+                                class="text-xs px-3 py-1.5 rounded-lg border border-border
+                                       text-text-secondary hover:border-red-300 hover:text-red-600
+                                       hover:bg-red-50 transition-colors">
+                            Delete
+                        </button>
+                    </div>
+                </td>
+            </tr>`;
+        }).join('');
+    }
+
+    // ── Escape HTML ─────────────────────────────────────────────────────────
+    function escHtml(str) {
+        return String(str || '')
+            .replace(/&/g,'&amp;').replace(/</g,'&lt;')
+            .replace(/>/g,'&gt;').replace(/"/g,'&quot;');
+    }
+
+    // ── Pill list helper ─────────────────────────────────────────────────────
+    function renderPills(container, value) {
+        if (!value || !value.trim()) {
+            container.innerHTML = `<span class="view-field-value empty text-xs">—</span>`;
+            return;
+        }
+        const items = value.split(',').map(s => s.trim()).filter(Boolean);
+        container.innerHTML = items.map(v => `<span class="view-pill">${escHtml(v)}</span>`).join('');
+    }
+
+    // ── View Modal ──────────────────────────────────────────────────────────
+    function openViewModal(id) {
+        const inst = allInstitutions.find(i => i.institutionId === id);
+        if (!inst) return;
+
+        const isBank = (inst.institutionType || '').toLowerCase() === 'bank';
+
+        // Avatar / logo
+        const avatarWrap = document.getElementById('viewAvatarWrap');
+        if (inst.institutionLogo) {
+            avatarWrap.innerHTML = `
+                <img src="${escHtml(inst.institutionLogo)}" alt=""
+                     class="w-13 h-13 rounded-xl object-contain border border-border" style="width:52px;height:52px;" />`;
+        } else {
+            const cls = isBank ? 'view-avatar-bank' : 'view-avatar-nonbank';
+            avatarWrap.innerHTML = `
+                <div class="view-avatar ${cls}">
+                    ${(inst.institutionName || '?')[0].toUpperCase()}
+                </div>`;
+        }
+
+        // Name & short name
+        document.getElementById('viewName').textContent = inst.institutionName || '--';
+        const shortEl = document.getElementById('viewShortName');
+        shortEl.textContent = inst.institutionShortName ? `Short name: ${inst.institutionShortName}` : '';
+
+        // Type badge
+        const badge = document.getElementById('viewTypeBadge');
+        badge.textContent = inst.institutionType || '--';
+        badge.className   = `inline-flex items-center gap-1.5 text-xs font-medium px-2.5 py-0.5 rounded-full
+            ${isBank ? 'type-badge-bank' : 'type-badge-nonbank'}`;
+
+        // Code
+        const codeEl       = document.getElementById('viewCode');
+        codeEl.textContent = inst.institutionCode || '—';
+
+        // Domain
+        const domainEl     = document.getElementById('viewDomain');
+        domainEl.textContent = inst.institutionDomain || '—';
+        domainEl.className   = inst.institutionDomain ? 'view-field-value' : 'view-field-value empty';
+
+        // Pills
+        renderPills(document.getElementById('viewEmails'),    inst.institutionEmails);
+        renderPills(document.getElementById('viewBins'),      inst.bankBins);
+        renderPills(document.getElementById('viewTerminals'), inst.terminalIds);
+        renderPills(document.getElementById('viewSubCodes'),  inst.institutionSubCodes);
+
+        // Timestamps
+        const fmt = d => d
+            ? new Date(d).toLocaleDateString('en-GB', { day:'2-digit', month:'short', year:'numeric' })
+            : '—';
+        document.getElementById('viewCreatedAt').textContent = fmt(inst.createdAt);
+        document.getElementById('viewUpdatedAt').textContent = fmt(inst.updatedAt);
+
+        // Edit shortcut
+        document.getElementById('viewEditBtn').onclick = () => {
+            closeViewModal();
+            openEditModal(id);
+        };
+
+        document.getElementById('viewModal').classList.add('open');
+    }
+
+    function closeViewModal() {
+        document.getElementById('viewModal').classList.remove('open');
+    }
+
+    document.getElementById('viewModal').addEventListener('click', function (e) {
+        if (e.target === this) closeViewModal();
+    });
+
+    // ── Add / Edit Modal ────────────────────────────────────────────────────
+    function openAddModal() {
+        isEditing = false;
+        document.getElementById('modalTitle').textContent  = 'Add Institution';
+        document.getElementById('saveBtnText').textContent = 'Create Institution';
+        document.getElementById('editInstitutionId').value = '';
+        document.getElementById('institutionForm').reset();
+        document.getElementById('modalAlert').classList.add('hidden');
+        document.getElementById('institutionModal').classList.add('open');
+        document.getElementById('instName').focus();
+    }
+
+    function openEditModal(id) {
+        const inst = allInstitutions.find(i => i.institutionId === id);
+        if (!inst) return;
+
+        isEditing = true;
+        document.getElementById('modalTitle').textContent      = 'Edit Institution';
+        document.getElementById('saveBtnText').textContent     = 'Save Changes';
+        document.getElementById('editInstitutionId').value     = inst.institutionId;
+        document.getElementById('instName').value              = inst.institutionName || '';
+        document.getElementById('instType').value              = inst.institutionType || 'Bank';
+        document.getElementById('instShortName').value         = inst.institutionShortName || '';
+        document.getElementById('instCode').value              = inst.institutionCode || '';
+        document.getElementById('instDomain').value            = inst.institutionDomain || '';
+        document.getElementById('instEmails').value            = inst.institutionEmails || '';
+        document.getElementById('instBins').value              = inst.bankBins || '';
+        document.getElementById('instTerminals').value         = inst.terminalIds || '';
+        document.getElementById('instSubCodes').value          = inst.institutionSubCodes || '';
+        document.getElementById('modalAlert').classList.add('hidden');
+        document.getElementById('institutionModal').classList.add('open');
+    }
+
+    function closeModal() {
+        document.getElementById('institutionModal').classList.remove('open');
+    }
+
+    async function saveInstitution() {
+        const id        = document.getElementById('editInstitutionId').value;
+        const name      = document.getElementById('instName').value.trim();
+        const type      = document.getElementById('instType').value;
+        const shortName = document.getElementById('instShortName').value.trim();
+        const code      = document.getElementById('instCode').value.trim();
+        const domain    = document.getElementById('instDomain').value.trim();
+        const emails    = document.getElementById('instEmails').value.trim();
+        const bins      = document.getElementById('instBins').value.trim();
+        const terminals = document.getElementById('instTerminals').value.trim();
+        const subCodes  = document.getElementById('instSubCodes').value.trim();
+        const logoFile  = document.getElementById('instLogo').files[0];
+
+        if (!name) { showModalAlert('Institution name is required.', 'error'); return; }
+
+        const formData = new FormData();
+        formData.append('InstitutionName',      name);
+        formData.append('InstitutionType',      type);
+        formData.append('InstitutionShortName', shortName);
+        formData.append('InstitutionCode',      code);
+        formData.append('InstitutionDomain',    domain);
+        formData.append('InstitutionEmails',    emails);
+        formData.append('BankBins',             bins);
+        formData.append('TerminalIds',          terminals);
+        formData.append('InstitutionSubCodes',  subCodes);
+        if (logoFile) formData.append('logoFile', logoFile);
+
+        const btn     = document.getElementById('saveBtn');
+        const spinner = document.getElementById('saveBtnSpinner');
+        const btnText = document.getElementById('saveBtnText');
+        btn.disabled  = true;
+        spinner.classList.remove('hidden');
+        btnText.textContent = isEditing ? 'Saving...' : 'Creating...';
+
+        try {
+            const url  = isEditing ? `/Dashboard/Institutions/Update/${id}` : '/Dashboard/Institutions/Create';
+            const res  = await fetch(url, { method: 'POST', body: formData });
+            const data = await res.json();
+            if (!res.ok) throw new Error(data.message || 'Failed to save institution');
+            await loadInstitutions();
+            closeModal();
+            showAlert(`Institution ${isEditing ? 'updated' : 'created'} successfully.`, 'success');
+        } catch (err) {
+            showModalAlert(err.message || 'Failed to save institution. Please try again.', 'error');
+        } finally {
+            btn.disabled = false;
+            spinner.classList.add('hidden');
+            btnText.textContent = isEditing ? 'Save Changes' : 'Create Institution';
+        }
+    }
+
+    // ── Confirm modal ────────────────────────────────────────────────────────
+    function openConfirm({ icon, iconBg, title, message, btnColor, action }) {
+        document.getElementById('confirmIcon').className =
+            `w-10 h-10 rounded-full flex items-center justify-center mx-auto mb-4 ${iconBg}`;
+        document.getElementById('confirmIcon').innerHTML      = icon;
+        document.getElementById('confirmTitle').textContent   = title;
+        document.getElementById('confirmMessage').textContent = message;
+        const btn     = document.getElementById('confirmActionBtn');
+        btn.className = `flex-1 py-2 text-sm font-medium text-white rounded-xl transition-colors ${btnColor}`;
+        pendingAction = action;
+        btn.onclick   = () => pendingAction();
+        document.getElementById('confirmModal').classList.add('open');
+    }
+
+    function closeConfirm() {
+        document.getElementById('confirmModal').classList.remove('open');
+        pendingAction = null;
+    }
+
+    function confirmDelete(instId, name) {
+        openConfirm({
+            icon: `<svg class="w-5 h-5 text-red-600" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24">
+                       <polyline points="3 6 5 6 21 6"/><path d="M19 6l-1 14a2 2 0 01-2 2H8a2 2 0 01-2-2L5 6"/>
+                       <path d="M10 11v6M14 11v6"/><path d="M9 6V4h6v2"/>
+                   </svg>`,
+            iconBg:   'bg-red-50',
+            title:    'Delete Institution',
+            message:  `Are you sure you want to permanently delete ${name}? This action cannot be undone.`,
+            btnColor: 'bg-red-500 hover:bg-red-600',
+            action:   () => deleteInstitution(instId)
+        });
+    }
+
+    async function deleteInstitution(instId) {
+        closeConfirm();
+        try {
+            const res = await fetch(`/Dashboard/Institutions/Delete/${instId}`, { method: 'POST' });
+            if (!res.ok) {
+                const data = await res.json();
+                throw new Error(data.message || 'Failed to delete');
+            }
+            document.getElementById(`row-${instId}`)?.remove();
+            allInstitutions = allInstitutions.filter(i => i.institutionId !== instId);
+            document.getElementById('institutionCount').textContent =
+                `${allInstitutions.length} institution${allInstitutions.length !== 1 ? 's' : ''} total`;
+            showAlert('Institution deleted successfully.', 'success');
+        } catch (err) {
+            showAlert(err.message || 'Failed to delete institution. Please try again.', 'error');
+        }
+    }
+
+    // ── Alerts ───────────────────────────────────────────────────────────────
+    function showAlert(message, type) {
+        const el        = document.getElementById('alertArea');
+        const isSuccess = type === 'success';
+        el.className = `mb-4 px-4 py-3 rounded-xl text-sm border flex items-center gap-2
+            ${isSuccess ? 'bg-green-50 text-green-700 border-green-200' : 'bg-red-50 text-red-700 border-red-200'}`;
+        el.innerHTML = `
+            <svg class="w-4 h-4 flex-shrink-0" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24">
+                ${isSuccess
+                    ? '<path d="M22 11.08V12a10 10 0 1 1-5.93-9.14"/><polyline points="22 4 12 14.01 9 11.01"/>'
+                    : '<circle cx="12" cy="12" r="10"/><line x1="12" y1="8" x2="12" y2="12"/><line x1="12" y1="16" x2="12.01" y2="16"/>'}
+            </svg>
+            ${escHtml(message)}`;
+        el.classList.remove('hidden');
+        setTimeout(() => el.classList.add('hidden'), 4000);
+    }
+
+    function showModalAlert(message, type) {
+        const el = document.getElementById('modalAlert');
+        el.className = `mb-1 px-3 py-2 rounded-xl text-xs border
+            ${type === 'error' ? 'bg-red-50 text-red-700 border-red-200' : 'bg-green-50 text-green-700 border-green-200'}`;
+        el.textContent = message;
+        el.classList.remove('hidden');
+    }
+
+    // ── Backdrop close ────────────────────────────────────────────────────────
+    document.getElementById('institutionModal').addEventListener('click', function (e) {
+        if (e.target === this) closeModal();
+    });
+    document.getElementById('confirmModal').addEventListener('click', function (e) {
+        if (e.target === this) closeConfirm();
+    });
+
+    loadInstitutions();
+</script>
+}

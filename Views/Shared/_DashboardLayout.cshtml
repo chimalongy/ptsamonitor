@@ -1,0 +1,334 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>@ViewData["Title"] - PTSA Monitor</title>
+    <link rel="stylesheet" href="~/css/site.css" asp-append-version="true" />
+    <style>
+        /* ── Sidebar ── */
+        .sidebar {
+            transition: width 0.3s ease, opacity 0.3s ease;
+            width: 16rem;
+            overflow: hidden;
+            flex-shrink: 0;
+            position: fixed;
+            left: 0;
+            top: 0;
+            bottom: 0;
+            z-index: 50;
+            display: flex;
+            flex-direction: column;
+        }
+        .sidebar.collapsed {
+            width: 0;
+            opacity: 0;
+            pointer-events: none;
+        }
+
+        /* Mobile behaviour */
+        @@media (max-width: 1023px) {
+            .sidebar {
+                width: 16rem !important;
+                opacity: 1 !important;
+                pointer-events: auto !important;
+                transform: translateX(-100%);
+                transition: transform 0.3s ease !important;
+            }
+            .sidebar.open {
+                transform: translateX(0);
+            }
+            .sidebar-overlay {
+                display: none;
+                position: fixed;
+                inset: 0;
+                background: rgba(0,0,0,0.4);
+                z-index: 40;
+            }
+            .sidebar-overlay.open {
+                display: block;
+            }
+        }
+
+        /* ── Main content offset ── */
+        .main-content {
+            transition: margin-left 0.3s ease, width 0.3s ease;
+            margin-left: 16rem;
+            min-height: 100vh;
+            display: flex;
+            flex-direction: column;
+            width: calc(100% - 16rem);
+        }
+        .main-content.collapsed {
+            margin-left: 0;
+            width: 100%;
+        }
+        @@media (max-width: 1023px) {
+            .main-content,
+            .main-content.collapsed {
+                margin-left: 0 !important;
+                width: 100% !important;
+            }
+        }
+
+        /* ── Nav item ── */
+        .nav-item {
+            display: flex;
+            align-items: center;
+            gap: 0.75rem;
+            padding: 0.625rem 0.875rem;
+            border-radius: 0.625rem;
+            font-size: 0.8125rem;
+            font-weight: 500;
+            color: var(--color-text-secondary, #6b7280);
+            transition: all 0.15s ease;
+            text-decoration: none;
+            white-space: nowrap;
+        }
+        .nav-item:hover {
+            background: var(--color-brand-50, #fff7ed);
+            color: var(--color-brand-600, #ea580c);
+        }
+        .nav-item.active {
+            background: var(--color-brand-50, #fff7ed);
+            color: var(--color-brand-600, #ea580c);
+            font-weight: 600;
+        }
+        .nav-item.active svg {
+            color: var(--color-brand-500, #f97316);
+        }
+
+        /* ── Animations ── */
+        @@keyframes fadeUp {
+            from { opacity: 0; transform: translateY(16px); }
+            to   { opacity: 1; transform: translateY(0); }
+        }
+        .fade-up { opacity: 0; animation: fadeUp 0.45s ease forwards; }
+        .fade-up-1 { animation-delay: 0.05s; }
+        .fade-up-2 { animation-delay: 0.15s; }
+
+        /* ── Scrollbar ── */
+        .scrollbar-thin::-webkit-scrollbar { width: 5px; }
+        .scrollbar-thin::-webkit-scrollbar-track { background: transparent; }
+        .scrollbar-thin::-webkit-scrollbar-thumb {
+            background: var(--color-border, #e5e7eb);
+            border-radius: 999px;
+        }
+
+        /* ── Toggle buttons ── */
+        .sidebar-toggle-btn {
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            width: 2.25rem;
+            height: 2.25rem;
+            border-radius: 0.5rem;
+            border: 1px solid var(--color-border, #e5e7eb);
+            background: var(--color-surface-card, #ffffff);
+            color: var(--color-text-secondary, #6b7280);
+            cursor: pointer;
+            transition: background 0.15s, color 0.15s, border-color 0.15s;
+            flex-shrink: 0;
+        }
+        .sidebar-toggle-btn:hover {
+            background: var(--color-surface, #f9fafb);
+            color: var(--color-brand-600, #ea580c);
+            border-color: var(--color-brand-300, #fdba74);
+        }
+
+        /* ── Toggle visibility by breakpoint ── */
+        @@media (max-width: 1023px) {
+            #desktopToggleBtn {
+                display: none !important;
+            }
+        }
+        @@media (min-width: 1024px) {
+            #mobileToggleBtn {
+                display: none !important;
+            }
+        }
+    </style>
+</head>
+<body class="bg-surface min-h-screen font-body">
+
+    @{
+        var activePage = ViewData["ActivePage"]?.ToString() ?? "Dashboard";
+        var userName = User.FindFirst(System.Security.Claims.ClaimTypes.Name)?.Value ?? "";
+        var userRole = User.FindFirst(System.Security.Claims.ClaimTypes.Role)?.Value ?? "";
+        var userInstitution = User.FindFirst("institution")?.Value ?? "";
+        var initials = userName.Length > 0 ? userName[..1].ToUpper() : "?";
+    }
+
+    @* ── Mobile overlay ── *@
+    <div id="sidebarOverlay" class="sidebar-overlay" onclick="toggleSidebar()"></div>
+
+    @* ── Sidebar ── *@
+    <aside id="sidebar" class="sidebar bg-surface-card border-r border-border">
+
+        @* Logo *@
+        <div class="px-4 py-4 border-b border-border flex items-center gap-3 flex-shrink-0">
+            <div class="w-9 h-9 flex-shrink-0">
+                <img src="~/images/uplogo.png" alt="PTSA Monitor Logo" class="w-full h-full object-contain" />
+            </div>
+            <div class="flex-1 min-w-0">
+                <h1 class="text-text-primary text-sm font-semibold leading-tight truncate">PTSA Monitor</h1>
+                <p class="text-text-muted text-[10px] leading-tight truncate">Unified Payments</p>
+            </div>
+        </div>
+
+        @* Navigation *@
+        <nav class="flex-1 px-3 py-4 space-y-1 overflow-y-auto scrollbar-thin">
+            <p class="px-3 text-[10px] font-semibold text-text-muted uppercase tracking-wider mb-2">Main</p>
+
+            <a asp-controller="Dashboard" asp-action="Index"
+               class="nav-item @(activePage == "Dashboard" ? "active" : "")">
+                <svg class="w-4 h-4 flex-shrink-0" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24">
+                    <rect x="3" y="3" width="7" height="7" rx="1"/>
+                    <rect x="14" y="3" width="7" height="7" rx="1"/>
+                    <rect x="3" y="14" width="7" height="7" rx="1"/>
+                    <rect x="14" y="14" width="7" height="7" rx="1"/>
+                </svg>
+                Dashboard
+            </a>
+
+            <a asp-controller="Dashboard" asp-action="Transactions"
+               class="nav-item @(activePage == "Transactions" ? "active" : "")">
+                <svg class="w-4 h-4 flex-shrink-0" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24">
+                    <path d="M12 2v20M17 5H9.5a3.5 3.5 0 000 7h5a3.5 3.5 0 010 7H6"/>
+                </svg>
+                Transactions
+            </a>
+
+            <p class="px-3 text-[10px] font-semibold text-text-muted uppercase tracking-wider mb-2 mt-6">Management</p>
+
+            <a asp-controller="Dashboard" asp-action="Institutions"
+               class="nav-item @(activePage == "Institutions" ? "active" : "")">
+                <svg class="w-4 h-4 flex-shrink-0" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24">
+                    <path d="M3 21h18M5 21V7l8-4 8 4v14M9 21v-6h6v6"/>
+                </svg>
+                Institutions
+            </a>
+
+            <a asp-controller="Dashboard" asp-action="Users"
+               class="nav-item @(activePage == "Users" ? "active" : "")">
+                <svg class="w-4 h-4 flex-shrink-0" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24">
+                    <path d="M17 21v-2a4 4 0 00-4-4H5a4 4 0 00-4 4v2"/>
+                    <circle cx="9" cy="7" r="4"/>
+                    <path d="M23 21v-2a4 4 0 00-3-3.87M16 3.13a4 4 0 010 7.75"/>
+                </svg>
+                Users
+            </a>
+
+            <a asp-controller="Dashboard" asp-action="Audit"
+               class="nav-item @(activePage == "Audit" ? "active" : "")">
+                <svg class="w-4 h-4 flex-shrink-0" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24">
+                    <path d="M14 2H6a2 2 0 00-2 2v16a2 2 0 002 2h12a2 2 0 002-2V8z"/>
+                    <polyline points="14 2 14 8 20 8"/>
+                    <line x1="16" y1="13" x2="8" y2="13"/>
+                    <line x1="16" y1="17" x2="8" y2="17"/>
+                </svg>
+                Audit
+            </a>
+        </nav>
+
+        @* User section *@
+        <div class="px-3 py-3 border-t border-border flex-shrink-0">
+            <div class="flex items-center gap-3 px-3 py-2">
+                <div class="w-8 h-8 rounded-full bg-brand-500 flex items-center justify-center flex-shrink-0">
+                    <span class="text-white text-xs font-semibold">@initials</span>
+                </div>
+                <div class="flex-1 min-w-0">
+                    <p class="text-text-primary text-xs font-medium truncate">@userName</p>
+                    <p class="text-text-muted text-[10px] truncate">@userInstitution</p>
+                </div>
+            </div>
+            <a asp-controller="Auth" asp-action="Logout"
+               class="flex items-center gap-2 px-3 py-2 mt-1 text-xs text-text-secondary
+                      hover:text-red-600 hover:bg-red-50 rounded-lg transition-colors">
+                <svg class="w-4 h-4 flex-shrink-0" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24">
+                    <path d="M9 21H5a2 2 0 01-2-2V5a2 2 0 012-2h4M16 17l5-5-5-5M21 12H9"/>
+                </svg>
+                Sign out
+            </a>
+        </div>
+    </aside>
+
+    @* ── Main content area ── *@
+    <div id="mainContent" class="main-content">
+
+        @* Top bar *@
+        <header class="bg-surface-card border-b border-border px-4 py-3 flex items-center justify-between sticky top-0 z-30">
+            <div class="flex items-center gap-3">
+
+                @* Mobile hamburger — only on mobile *@
+                <button id="mobileToggleBtn"
+                        onclick="toggleSidebar()"
+                        class="sidebar-toggle-btn"
+                        title="Open menu">
+                    <svg class="w-4 h-4" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24">
+                        <path d="M3 12h18M3 6h18M3 18h18"/>
+                    </svg>
+                </button>
+
+                @* Desktop collapse toggle — only on desktop *@
+                <button id="desktopToggleBtn"
+                        onclick="toggleCollapse()"
+                        class="sidebar-toggle-btn"
+                        title="Toggle sidebar">
+                    <svg class="w-4 h-4" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24">
+                        <path d="M3 12h18M3 6h18M3 18h18"/>
+                    </svg>
+                </button>
+
+                <h2 class="text-text-primary text-base font-semibold">@ViewData["Title"]</h2>
+            </div>
+
+            <div class="flex items-center gap-3">
+                @if (!string.IsNullOrEmpty(userRole))
+                {
+                    <span class="hidden sm:inline-flex items-center px-2.5 py-1 rounded-full
+                                 text-[11px] font-medium bg-brand-100 text-brand-600">
+                        @userRole
+                    </span>
+                }
+            </div>
+        </header>
+
+        @* Page content *@
+        <main class="flex-1 px-4 lg:px-8 py-6">
+            @RenderBody()
+        </main>
+    </div>
+
+    <script>
+        // ── Mobile toggle ──
+        function toggleSidebar() {
+            const sidebar = document.getElementById('sidebar');
+            const overlay = document.getElementById('sidebarOverlay');
+            sidebar.classList.toggle('open');
+            overlay.classList.toggle('open');
+        }
+
+        // ── Desktop full collapse ──
+        const COLLAPSED_KEY = 'sidebar_collapsed';
+
+        function toggleCollapse() {
+            const sidebar = document.getElementById('sidebar');
+            const main = document.getElementById('mainContent');
+            const isCollapsed = sidebar.classList.toggle('collapsed');
+            main.classList.toggle('collapsed', isCollapsed);
+            localStorage.setItem(COLLAPSED_KEY, isCollapsed ? '1' : '0');
+        }
+
+        // ── Restore state on load ──
+        (function () {
+            if (localStorage.getItem(COLLAPSED_KEY) === '1') {
+                document.getElementById('sidebar').classList.add('collapsed');
+                document.getElementById('mainContent').classList.add('collapsed');
+            }
+        })();
+    </script>
+
+    @RenderSection("Scripts", required: false)
+</body>
+</html>

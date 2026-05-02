@@ -1,0 +1,122 @@
+@{
+    ViewData["Title"] = "Audit Logs";
+    ViewData["ActivePage"] = "Audit";
+    Layout = "~/Views/Shared/_DashboardLayout.cshtml";
+}
+
+<style>
+    @@keyframes fadeUp {
+        from { opacity: 0; transform: translateY(16px); }
+        to { opacity: 1; transform: translateY(0); }
+    }
+    @@keyframes spin { to { transform: rotate(360deg); } }
+    .fade-up { opacity: 0; animation: fadeUp 0.45s ease forwards; }
+    .fade-up-1 { animation-delay: 0.05s; }
+    .fade-up-2 { animation-delay: 0.15s; }
+    .spinner { animation: spin 0.7s linear infinite; }
+    .audit-row { transition: background 0.15s ease; }
+    .audit-row:hover { background: var(--color-surface, #f8fafc); }
+</style>
+
+@* ── Page header ── *@
+<div class="flex items-center justify-between mb-6 fade-up fade-up-1">
+    <div>
+        <h1 class="text-text-primary text-2xl font-semibold font-display">Audit Logs</h1>
+        <p class="text-text-muted text-sm mt-0.5">Track system activity and user actions.</p>
+    </div>
+</div>
+
+@* ── Audit logs table card ── *@
+<div class="bg-surface-card border border-border rounded-2xl shadow-sm overflow-hidden fade-up fade-up-2">
+    <div class="overflow-x-auto">
+        <table class="w-full text-sm">
+            <thead>
+                <tr class="border-b border-border bg-surface">
+                    <th class="text-left text-xs font-semibold text-text-muted px-5 py-3 uppercase tracking-wide">Event</th>
+                    <th class="text-left text-xs font-semibold text-text-muted px-5 py-3 uppercase tracking-wide hidden sm:table-cell">User ID</th>
+                    <th class="text-left text-xs font-semibold text-text-muted px-5 py-3 uppercase tracking-wide hidden md:table-cell">IP Address</th>
+                    <th class="text-left text-xs font-semibold text-text-muted px-5 py-3 uppercase tracking-wide hidden lg:table-cell">Page</th>
+                    <th class="text-left text-xs font-semibold text-text-muted px-5 py-3 uppercase tracking-wide">Date</th>
+                </tr>
+            </thead>
+            <tbody id="auditTableBody">
+                <tr>
+                    <td colspan="5" class="text-center py-12 text-text-muted">
+                        <svg class="w-5 h-5 mx-auto mb-2 spinner text-brand-400" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24">
+                            <path d="M21 12a9 9 0 1 1-6.219-8.56"/>
+                        </svg>
+                        <span class="text-xs">Loading audit logs...</span>
+                    </td>
+                </tr>
+            </tbody>
+        </table>
+    </div>
+
+    <div class="px-5 py-3 border-t border-border bg-surface flex items-center justify-between">
+        <span id="auditCount" class="text-xs text-text-muted">--</span>
+        <span class="text-xs text-text-muted">PTSA Monitor - Audit Logs</span>
+    </div>
+</div>
+
+@section Scripts {
+<script>
+    async function loadAuditLogs() {
+        try {
+            const res = await fetch('/Dashboard/Audit/GetAll');
+            if (!res.ok) throw new Error('Failed to fetch');
+            const logs = await res.json();
+            renderTable(logs);
+        } catch (err) {
+            document.getElementById('auditTableBody').innerHTML = `
+                <tr>
+                    <td colspan="5" class="text-center py-12 text-text-muted text-xs">
+                        Failed to load audit logs. Please refresh the page.
+                    </td>
+                </tr>`;
+        }
+    }
+
+    function renderTable(logs) {
+        const tbody = document.getElementById('auditTableBody');
+        const countEl = document.getElementById('auditCount');
+
+        countEl.textContent = `${logs.length} log${logs.length !== 1 ? 's' : ''} total`;
+
+        if (logs.length === 0) {
+            tbody.innerHTML = `
+                <tr>
+                    <td colspan="5" class="text-center py-12 text-text-muted text-xs">
+                        No audit logs found.
+                    </td>
+                </tr>`;
+            return;
+        }
+
+        tbody.innerHTML = logs.map(log => {
+            const date = log.eventDate
+                ? new Date(log.eventDate).toLocaleDateString('en-GB', {
+                    day:'2-digit', month:'short', year:'numeric',
+                    hour:'2-digit', minute:'2-digit', second:'2-digit'
+                  })
+                : '--';
+
+            return `
+            <tr class="audit-row border-b border-border last:border-0">
+                <td class="px-5 py-3.5 text-text-primary text-xs">${escHtml(log.event || '--')}</td>
+                <td class="px-5 py-3.5 text-text-secondary text-xs hidden sm:table-cell">${log.userId || '--'}</td>
+                <td class="px-5 py-3.5 text-text-muted text-xs hidden md:table-cell">${escHtml(log.ipAddress || '--')}</td>
+                <td class="px-5 py-3.5 text-text-muted text-xs hidden lg:table-cell">${escHtml(log.pageUrl || '--')}</td>
+                <td class="px-5 py-3.5 text-text-muted text-xs whitespace-nowrap">${date}</td>
+            </tr>`;
+        }).join('');
+    }
+
+    function escHtml(str) {
+        return String(str || '')
+            .replace(/&/g,'&amp;').replace(/</g,'&lt;')
+            .replace(/>/g,'&gt;').replace(/"/g,'&quot;');
+    }
+
+    loadAuditLogs();
+</script>
+}

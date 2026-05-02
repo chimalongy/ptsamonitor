@@ -1,0 +1,13 @@
+{
+  "name": "ptsamonitor",
+  "version": "1.0.0",
+  "description": "PTSA Monitor - Multi-tenant Dashboard System",
+  "scripts": {
+    "css:build": "npx @tailwindcss/cli -i ./wwwroot/css/app.css -o ./wwwroot/css/site.css --minify",
+    "css:watch": "npx @tailwindcss/cli -i ./wwwroot/css/app.css -o ./wwwroot/css/site.css --watch"
+  },
+  "devDependencies": {
+    "@tailwindcss/cli": "^4.2.2",
+    "tailwindcss": "^4.2.2"
+  }
+}

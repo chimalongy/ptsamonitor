@@ -1,0 +1,39 @@
+@model ErrorViewModel
+@{
+    ViewData["Title"] = "Error";
+    Layout = null;
+}
+
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>Error - PTSA Monitor</title>
+    <link rel="stylesheet" href="~/css/site.css" asp-append-version="true" />
+</head>
+<body class="bg-surface min-h-screen flex items-center justify-center font-body">
+    <div class="text-center px-4">
+        <div class="w-16 h-16 rounded-2xl bg-red-50 flex items-center justify-center mx-auto mb-5">
+            <svg class="w-8 h-8 text-red-500" fill="none" stroke="currentColor" stroke-width="1.5" viewBox="0 0 24 24">
+                <circle cx="12" cy="12" r="10"/>
+                <line x1="12" y1="8" x2="12" y2="12"/>
+                <line x1="12" y1="16" x2="12.01" y2="16"/>
+            </svg>
+        </div>
+        <h1 class="text-text-primary text-2xl font-semibold mb-2">An error occurred</h1>
+        <p class="text-text-muted text-sm mb-6">Something went wrong while processing your request.</p>
+        @if (Model.ShowRequestId)
+        {
+            <p class="text-text-muted text-xs mb-6">Request ID: <code class="bg-surface-card border border-border px-2 py-1 rounded">@Model.RequestId</code></p>
+        }
+        <a href="/" class="inline-flex items-center gap-2 px-5 py-2.5 bg-accent-500 hover:bg-accent-600 text-white text-sm font-medium rounded-xl transition-colors">
+            <svg class="w-4 h-4" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24">
+                <path d="M3 9l9-7 9 7v11a2 2 0 01-2 2H5a2 2 0 01-2-2z"/>
+                <polyline points="9 22 9 12 15 12 15 22"/>
+            </svg>
+            Go to Dashboard
+        </a>
+    </div>
+</body>
+</html>
