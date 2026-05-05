@@ -11,6 +11,7 @@ using StackExchange.Redis;
 var builder = WebApplication.CreateBuilder(args);
 
 string connstring = "User Id=PTSA;Password=ptsa1234;Data Source=(DESCRIPTION=(ADDRESS=(PROTOCOL=TCP)(HOST=localhost)(PORT=1521))(CONNECT_DATA=(SERVICE_NAME=XEPDB1)));";
+
 string encryptedConnstring = Cryptor.Encrypt(connstring, true);
 
 

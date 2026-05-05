@@ -5,7 +5,7 @@
 
 
 ================================================================================
-  SECTION 1: UNIFIED PAYMENTS
+  SECTION 1: UNIFIED PAYMENTS (Users from Unified Payments)
 ================================================================================
 
 -- ─────────────────────────────────────────────────────────────────────────────
@@ -67,7 +67,7 @@ FROM PTSA.MV_DASHBOARD_CACHE;
 
 
 ================================================================================
-  SECTION 2: BANKS
+  SECTION 2: BANKS - FOR INSTITUTION TYPE 
   Filter: INSTITUTION_CODE = UPPER(:inst_code)
   Example values: 'N53', 'TL1', 'QEF', 'EFM', etc.
 ================================================================================
@@ -136,7 +136,7 @@ WHERE INSTITUTION_CODE = UPPER(:inst_code);
 
 
 ================================================================================
-  SECTION 3: NON-BANKS
+  SECTION 3: NON-BANKS -ALL NON BANKS THAT ARE NOT UNIFIED PAYMENTS
   Filter: SOURCE1 IN (:code1, :code2, ...)
   Example values: 'WEB', 'MOBILE', 'USSD', 'AGENT', 'POS', 'ATM', etc.
 ================================================================================
