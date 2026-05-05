@@ -434,3 +434,5 @@ C:\Users\dell\source\repos\ptsamonitor\bin\Debug\net8.0\StackExchange.Redis.dll
 C:\Users\dell\source\repos\ptsamonitor\bin\Debug\net8.0\System.IO.Hashing.dll
 C:\Users\dell\source\repos\ptsamonitor\bin\Debug\net8.0\Microsoft.Extensions.ObjectPool.dll
 C:\Users\dell\source\repos\ptsamonitor\bin\Debug\net8.0\System.Net.WebSockets.WebSocketProtocol.dll
+C:\Users\dell\source\repos\ptsamonitor\obj\Debug\net8.0\scopedcss\Views\Shared\_Layout.cshtml.rz.scp.css
+C:\Users\dell\source\repos\ptsamonitor\obj\Debug\net8.0\scopedcss\projectbundle\ptsamonitor.bundle.scp.css
