@@ -1,0 +1,170 @@
+================================================================================
+UNIFIED PAYMENTS
+================================================================================
+
+-- Pie Chart
+SELECT COUNT(1) AS count, SUM(amount) AS amount, respcode
+FROM PTSA.DATAMART
+WHERE time >= '<startDate>'
+  AND time < '<stopDate>'
+  -- AND SOURCE='PTSA'   /* UPTSA 1 filter */
+  -- AND SOURCE='TWO'    /* UPTSA 2 filter */
+GROUP BY respcode;
+
+--------------------------------------------------------------------------------
+
+-- Donut Chart (Status Code)
+SELECT NVL(r.DECRIPTION, 'Error') AS DECRIPTION,
+       COUNT(DISTINCT p.id) AS txn_count
+FROM PTSA.DATAMART p
+LEFT JOIN PTSA.APPROVAL2 r ON p.respcode = r.code
+WHERE p.time > '<startDate>'
+  AND p.time < '<stopDate>'
+  AND p.respcode NOT IN ('00', '0')
+  -- AND SOURCE='PTSA'   /* UPTSA 1 filter */
+  -- AND SOURCE='TWO'    /* UPTSA 2 filter */
+GROUP BY NVL(r.DECRIPTION, 'Error')
+ORDER BY DECRIPTION;
+
+--------------------------------------------------------------------------------
+
+-- Bar Chart (Transactions by Institution)
+SELECT 
+    COUNT(1) AS count,
+    NVL(DESTINATION, AUTHFINAME) AS inst
+FROM PTSA.DATAMART
+WHERE time > '<startDate>'
+  -- AND SOURCE='PTSA'   /* UPTSA 1 filter */
+  -- AND SOURCE='TWO'    /* UPTSA 2 filter */
+GROUP BY NVL(DESTINATION, AUTHFINAME);
+
+--------------------------------------------------------------------------------
+
+-- Transaction Table (Main Query)
+SELECT SOURCE,
+       TRANNUMBER AS RRN,
+       PAN,
+       TERMNAME AS TERMINALID,
+       RESPCODE,
+       TIME,
+       TERMRETAILERNAME AS MERCHANTID,
+       DESTINATION
+FROM PTSA.DATAMART
+WHERE TIME >= TO_DATE('<startDate>', 'YYYY-MM-DD')
+  AND TIME < TO_DATE('<endDate>', 'YYYY-MM-DD')
+  -- AND PAN LIKE '%<search>%' OR RRN LIKE '%<search>%'   /* search filter */
+  -- AND SOURCE = '<source>'                               /* source filter */
+  -- AND TERMNAME = '<terminalId>'                         /* terminal filter */
+  -- AND TERMRETAILERNAME = '<merchantId>'                 /* merchant filter */
+ORDER BY TIME DESC
+OFFSET <offset> ROWS FETCH NEXT <limit> ROWS ONLY;
+
+-- Transaction Table (Count Query)
+SELECT COUNT(*) AS TOTAL
+FROM PTSA.DATAMART
+WHERE TIME >= TO_DATE('<startDate>', 'YYYY-MM-DD')
+  AND TIME < TO_DATE('<endDate>', 'YYYY-MM-DD');
+
+
+================================================================================
+BANKS
+================================================================================
+
+-- Pie Chart
+SELECT COUNT(1) AS count, SUM(amount) AS amount, respcode
+FROM PTSA.DATAMART
+WHERE time >= '<startDate>'
+  AND time < '<stopDate>'
+  AND UPPER(SUBSTR(termname, 2, 3)) = UPPER('<INSTITUTION_CODE>')
+GROUP BY respcode;
+
+--------------------------------------------------------------------------------
+
+-- Donut Chart (Status Code)
+SELECT NVL(r.DECRIPTION, 'Error') AS DECRIPTION,
+       COUNT(DISTINCT p.id) AS txn_count
+FROM PTSA.DATAMART p
+LEFT JOIN PTSA.APPROVAL2 r ON p.respcode = r.code
+WHERE p.time > '<startDate>'
+  AND p.time < '<stopDate>'
+  AND p.respcode NOT IN ('00', '0')
+  AND UPPER(SUBSTR(p.termname, 2, 3)) = UPPER('<INSTITUTION_CODE>')
+GROUP BY NVL(r.DECRIPTION, 'Error')
+ORDER BY DECRIPTION;
+
+--------------------------------------------------------------------------------
+
+-- Bar Chart (Transactions by Institution)
+SELECT 
+    COUNT(1) AS count,
+    NVL(DESTINATION, AUTHFINAME) AS inst
+FROM PTSA.DATAMART
+WHERE time > '<startDate>'
+  AND UPPER(SUBSTR(termname, 2, 3)) = UPPER('<INSTITUTION_CODE>')
+GROUP BY NVL(DESTINATION, AUTHFINAME);
+
+--------------------------------------------------------------------------------
+
+-- Transaction Table (Main Query)
+SELECT SOURCE,
+       TRANNUMBER AS RRN,
+       PAN,
+       TERMNAME AS TERMINALID,
+       RESPCODE,
+       TIME,
+       TERMRETAILERNAME AS MERCHANTID,
+       DESTINATION
+FROM PTSA.DATAMART
+WHERE TIME >= TO_DATE('<startDate>', 'YYYY-MM-DD')
+  AND TIME < TO_DATE('<endDate>', 'YYYY-MM-DD')
+  AND UPPER(SUBSTR(termname, 2, 3)) = UPPER('<INSTITUTION_CODE>')
+ORDER BY TIME DESC
+OFFSET <offset> ROWS FETCH NEXT <limit> ROWS ONLY;
+
+-- Transaction Table (Count Query)
+SELECT COUNT(*) AS TOTAL
+FROM PTSA.DATAMART
+WHERE TIME >= TO_DATE('<startDate>', 'YYYY-MM-DD')
+  AND TIME < TO_DATE('<endDate>', 'YYYY-MM-DD')
+  AND UPPER(SUBSTR(termname, 2, 3)) = UPPER('<INSTITUTION_CODE>');
+
+
+================================================================================
+NON-BANKS
+================================================================================
+
+-- Pie Chart
+SELECT COUNT(1) AS count, SUM(amount) AS amount, respcode
+FROM PTSA.DATAMART
+WHERE time >= '<startDate>'
+  AND time < '<stopDate>'
+  AND SOURCE1 IN ('<subCode1>', '<subCode2>', ...)
+GROUP BY respcode;
+
+--------------------------------------------------------------------------------
+
+-- Donut Chart (Status Code)
+SELECT NVL(r.DECRIPTION, 'Error') AS DECRIPTION,
+       COUNT(DISTINCT p.id) AS txn_count
+FROM PTSA.DATAMART p
+LEFT JOIN PTSA.APPROVAL2 r ON p.respcode = r.code
+WHERE p.time > '<startDate>'
+  AND p.time < '<stopDate>'
+  AND p.respcode NOT IN ('00', '0')
+  AND p.SOURCE1 IN ('<subCode1>', '<subCode2>', ...)
+GROUP BY NVL(r.DECRIPTION, 'Error')
+ORDER BY DECRIPTION;
+
+--------------------------------------------------------------------------------
+
+-- Bar Chart (Transactions by Institution)
+SELECT 
+    COUNT(1) AS count,
+    NVL(DESTINATION, AUTHFINAME) AS inst
+FROM PTSA.DATAMART
+WHERE time > '<startDate>'
+  AND SOURCE1 IN ('<subCode1>', '<subCode2>', ...)
+GROUP BY NVL(DESTINATION, AUTHFINAME);
+
+--------------------------------------------------------------------------------
+

@@ -1,0 +1,29 @@
+@{
+    ViewData["Title"] = "Transactions";
+    ViewData["ActivePage"] = "Transactions";
+    Layout = "~/Views/Shared/_DashboardLayout.cshtml";
+}
+
+<style>
+    @@keyframes fadeUp {
+        from { opacity: 0; transform: translateY(16px); }
+        to { opacity: 1; transform: translateY(0); }
+    }
+    .fade-up {
+        opacity: 0;
+        animation: fadeUp 0.45s ease forwards;
+    }
+    .fade-up-1 { animation-delay: 0.05s; }
+</style>
+
+<div class="text-center py-20 fade-up fade-up-1">
+    <div class="w-16 h-16 rounded-2xl bg-brand-50 flex items-center justify-center mx-auto mb-5">
+        <svg class="w-8 h-8 text-brand-400" fill="none" stroke="currentColor" stroke-width="1.5" viewBox="0 0 24 24">
+            <path d="M12 2v20M17 5H9.5a3.5 3.5 0 000 7h5a3.5 3.5 0 010 7H6"/>
+        </svg>
+    </div>
+    <h2 class="text-text-primary text-lg font-semibold mb-2">Transactions</h2>
+    <p class="text-text-muted text-sm max-w-sm mx-auto">
+        Transaction monitoring features will be available in a future update. This module will provide real-time transaction spooling and moderation capabilities.
+    </p>
+</div>
