@@ -1,9 +1,11 @@
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
-using System.Security.Claims;
+using Microsoft.EntityFrameworkCore;
+using Oracle.ManagedDataAccess.Client;
 using ptsamonitor.Classes.Utils;
 using ptsamonitor.Data;
 using ptsamonitor.Models.ViewModels;
+using System.Security.Claims;
 
 namespace ptsamonitor.Controllers;
 
@@ -52,6 +54,370 @@ public class DashboardController : Controller
     public IActionResult Audit()
     {
         return View("~/Views/Dashboard/Audit.cshtml");
+    }
+
+    // ══════════════════════════════════════════════════════════════════════
+    // DASHBOARD DATA API — reads directly from MV_DASHBOARD_CACHE
+    // ══════════════════════════════════════════════════════════════════════
+
+    /// <summary>
+    /// Returns the current user's institution info needed by the dashboard.
+    /// </summary>
+    private async Task<(string InstitutionName, string InstitutionType, string? InstitutionCode, string? InstitutionSubCodes)> GetUserInstitutionAsync()
+    {
+        var userName = User.FindFirstValue(ClaimTypes.Name) ?? "";
+        var user = await _db.PtsaUsers.FirstOrDefaultAsync(u => u.UserName == userName);
+        if (user?.Institution == null)
+            return ("", "", null, null);
+
+        var institution = await _db.Institutions
+            .FirstOrDefaultAsync(i => i.InstitutionName == user.Institution);
+
+        return (
+            user.Institution,
+            institution?.InstitutionType ?? "",
+            institution?.InstitutionCode,
+            institution?.InstitutionSubCodes
+        );
+    }
+
+    private string GetOracleConnectionString()
+    {
+        var encrypted = _config.GetConnectionString("PTSAConnection")
+            ?? throw new Exception("PTSAConnection not found in config.");
+        return Cryptor.Decrypt(encrypted, true);
+    }
+
+    [HttpGet]
+    [Route("Dashboard/Api/PieChart")]
+    public async Task<IActionResult> PieChart()
+    {
+        var (_, instType, instCode, subCodes) = await GetUserInstitutionAsync();
+        var connStr = GetOracleConnectionString();
+        var rows = new List<object>();
+
+        const string unifiedSql = @"
+            SELECT COUNT(1) AS TXN_COUNT, SUM(AMOUNT) AS TOTAL_AMOUNT,
+                   RESPCODE, RESPCODE_DESCRIPTION
+            FROM PTSA.MV_DASHBOARD_CACHE
+            GROUP BY RESPCODE, RESPCODE_DESCRIPTION
+            ORDER BY TXN_COUNT DESC";
+
+        const string bankSql = @"
+            SELECT COUNT(1) AS TXN_COUNT, SUM(AMOUNT) AS TOTAL_AMOUNT,
+                   RESPCODE, RESPCODE_DESCRIPTION
+            FROM PTSA.MV_DASHBOARD_CACHE
+            WHERE INSTITUTION_CODE = UPPER(:inst_code)
+            GROUP BY RESPCODE, RESPCODE_DESCRIPTION
+            ORDER BY TXN_COUNT DESC";
+
+        const string nonBankSql = @"
+            SELECT COUNT(1) AS TXN_COUNT, SUM(AMOUNT) AS TOTAL_AMOUNT,
+                   RESPCODE, RESPCODE_DESCRIPTION
+            FROM PTSA.MV_DASHBOARD_CACHE
+            WHERE SOURCE1 IN ({0})
+            GROUP BY RESPCODE, RESPCODE_DESCRIPTION
+            ORDER BY TXN_COUNT DESC";
+
+        string sql;
+        OracleParameter[]? parameters = null;
+
+        if (instType.Equals("Bank", StringComparison.OrdinalIgnoreCase))
+        {
+            sql = bankSql;
+            parameters = new[] { new OracleParameter("inst_code", instCode ?? "") };
+        }
+        else if (instType.Equals("Non Bank", StringComparison.OrdinalIgnoreCase) && !string.Equals(instCode, "UP001", StringComparison.OrdinalIgnoreCase))
+        {
+            // Non-bank (not Unified Payments)
+            var codes = (subCodes ?? "").Split(',', StringSplitOptions.RemoveEmptyEntries | StringSplitOptions.TrimEntries);
+            if (codes.Length == 0) codes = new[] { "WEB", "MOBILE", "USSD", "AGENT", "POS", "ATM" };
+            var placeholders = string.Join(", ", codes.Select((_, i) => $":p{i}"));
+            sql = string.Format(nonBankSql, placeholders);
+            parameters = codes.Select((c, i) => new OracleParameter($"p{i}", c)).ToArray();
+        }
+        else
+        {
+            // Unified Payments (or fallback)
+            sql = unifiedSql;
+        }
+
+        await using var conn = new OracleConnection(connStr);
+        await conn.OpenAsync();
+        await using var cmd = new OracleCommand(sql, conn);
+        if (parameters != null) cmd.Parameters.AddRange(parameters);
+        await using var rdr = await cmd.ExecuteReaderAsync();
+
+        while (await rdr.ReadAsync())
+        {
+            rows.Add(new
+            {
+                TxnCount = rdr.IsDBNull(0) ? 0 : rdr.GetInt64(0),
+                TotalAmount = rdr.IsDBNull(1) ? 0m : rdr.GetDecimal(1),
+                RespCode = rdr.IsDBNull(2) ? 0 : rdr.GetInt32(2),
+                RespCodeDescription = rdr.IsDBNull(3) ? null : rdr.GetString(3)
+            });
+        }
+
+        return Json(rows);
+    }
+
+    [HttpGet]
+    [Route("Dashboard/Api/DonutChart")]
+    public async Task<IActionResult> DonutChart()
+    {
+        var (_, instType, instCode, subCodes) = await GetUserInstitutionAsync();
+        var connStr = GetOracleConnectionString();
+        var rows = new List<object>();
+
+        const string unifiedSql = @"
+            SELECT RESPCODE_DESCRIPTION, COUNT(DISTINCT ID) AS TXN_COUNT
+            FROM PTSA.MV_DASHBOARD_CACHE
+            WHERE RESPCODE NOT IN (0, 00)
+            GROUP BY RESPCODE_DESCRIPTION
+            ORDER BY RESPCODE_DESCRIPTION";
+
+        const string bankSql = @"
+            SELECT RESPCODE_DESCRIPTION, COUNT(DISTINCT ID) AS TXN_COUNT
+            FROM PTSA.MV_DASHBOARD_CACHE
+            WHERE RESPCODE NOT IN (0, 00)
+              AND INSTITUTION_CODE = UPPER(:inst_code)
+            GROUP BY RESPCODE_DESCRIPTION
+            ORDER BY RESPCODE_DESCRIPTION";
+
+        const string nonBankSql = @"
+            SELECT RESPCODE_DESCRIPTION, COUNT(DISTINCT ID) AS TXN_COUNT
+            FROM PTSA.MV_DASHBOARD_CACHE
+            WHERE RESPCODE NOT IN (0, 00)
+              AND SOURCE1 IN ({0})
+            GROUP BY RESPCODE_DESCRIPTION
+            ORDER BY RESPCODE_DESCRIPTION";
+
+        string sql;
+        OracleParameter[]? parameters = null;
+
+        if (instType.Equals("Bank", StringComparison.OrdinalIgnoreCase))
+        {
+            sql = bankSql;
+            parameters = new[] { new OracleParameter("inst_code", instCode ?? "") };
+        }
+        else if (instType.Equals("Non Bank", StringComparison.OrdinalIgnoreCase) && !string.Equals(instCode, "UP001", StringComparison.OrdinalIgnoreCase))
+        {
+            var codes = (subCodes ?? "").Split(',', StringSplitOptions.RemoveEmptyEntries | StringSplitOptions.TrimEntries);
+            if (codes.Length == 0) codes = new[] { "WEB", "MOBILE", "USSD", "AGENT", "POS", "ATM" };
+            var placeholders = string.Join(", ", codes.Select((_, i) => $":p{i}"));
+            sql = string.Format(nonBankSql, placeholders);
+            parameters = codes.Select((c, i) => new OracleParameter($"p{i}", c)).ToArray();
+        }
+        else
+        {
+            sql = unifiedSql;
+        }
+
+        await using var conn = new OracleConnection(connStr);
+        await conn.OpenAsync();
+        await using var cmd = new OracleCommand(sql, conn);
+        if (parameters != null) cmd.Parameters.AddRange(parameters);
+        await using var rdr = await cmd.ExecuteReaderAsync();
+
+        while (await rdr.ReadAsync())
+        {
+            rows.Add(new
+            {
+                RespCodeDescription = rdr.IsDBNull(0) ? null : rdr.GetString(0),
+                TxnCount = rdr.IsDBNull(1) ? 0 : rdr.GetInt64(1)
+            });
+        }
+
+        return Json(rows);
+    }
+
+    [HttpGet]
+    [Route("Dashboard/Api/BarChart")]
+    public async Task<IActionResult> BarChart()
+    {
+        var (_, instType, instCode, subCodes) = await GetUserInstitutionAsync();
+        var connStr = GetOracleConnectionString();
+        var rows = new List<object>();
+
+        const string unifiedSql = @"
+            SELECT COUNT(1) AS TXN_COUNT, INST
+            FROM PTSA.MV_DASHBOARD_CACHE
+            GROUP BY INST
+            ORDER BY TXN_COUNT DESC";
+
+        const string bankSql = @"
+            SELECT COUNT(1) AS TXN_COUNT, INST
+            FROM PTSA.MV_DASHBOARD_CACHE
+            WHERE INSTITUTION_CODE = UPPER(:inst_code)
+            GROUP BY INST
+            ORDER BY TXN_COUNT DESC";
+
+        const string nonBankSql = @"
+            SELECT COUNT(1) AS TXN_COUNT, INST
+            FROM PTSA.MV_DASHBOARD_CACHE
+            WHERE SOURCE1 IN ({0})
+            GROUP BY INST
+            ORDER BY TXN_COUNT DESC";
+
+        string sql;
+        OracleParameter[]? parameters = null;
+
+        if (instType.Equals("Bank", StringComparison.OrdinalIgnoreCase))
+        {
+            sql = bankSql;
+            parameters = new[] { new OracleParameter("inst_code", instCode ?? "") };
+        }
+        else if (instType.Equals("Non Bank", StringComparison.OrdinalIgnoreCase) && !string.Equals(instCode, "UP001", StringComparison.OrdinalIgnoreCase))
+        {
+            var codes = (subCodes ?? "").Split(',', StringSplitOptions.RemoveEmptyEntries | StringSplitOptions.TrimEntries);
+            if (codes.Length == 0) codes = new[] { "WEB", "MOBILE", "USSD", "AGENT", "POS", "ATM" };
+            var placeholders = string.Join(", ", codes.Select((_, i) => $":p{i}"));
+            sql = string.Format(nonBankSql, placeholders);
+            parameters = codes.Select((c, i) => new OracleParameter($"p{i}", c)).ToArray();
+        }
+        else
+        {
+            sql = unifiedSql;
+        }
+
+        await using var conn = new OracleConnection(connStr);
+        await conn.OpenAsync();
+        await using var cmd = new OracleCommand(sql, conn);
+        if (parameters != null) cmd.Parameters.AddRange(parameters);
+        await using var rdr = await cmd.ExecuteReaderAsync();
+
+        while (await rdr.ReadAsync())
+        {
+            rows.Add(new
+            {
+                TxnCount = rdr.IsDBNull(0) ? 0 : rdr.GetInt64(0),
+                Inst = rdr.IsDBNull(1) ? null : rdr.GetString(1)
+            });
+        }
+
+        return Json(rows);
+    }
+
+    [HttpGet]
+    [Route("Dashboard/Api/Transactions")]
+    public async Task<IActionResult> TransactionsData(int offset = 0, int limit = 100)
+    {
+        var (_, instType, instCode, subCodes) = await GetUserInstitutionAsync();
+        var connStr = GetOracleConnectionString();
+        var rows = new List<object>();
+        long total = 0;
+
+        const string unifiedDataSql = @"
+            SELECT SOURCE, TRANNUMBER AS RRN, MASKEDPAN AS PAN, TERMNAME AS TERMINALID,
+                   RESPCODE, RESPCODE_DESCRIPTION, TIME, TERMRETAILERNAME AS MERCHANTID, DESTINATION
+            FROM PTSA.MV_DASHBOARD_CACHE
+            ORDER BY TIME DESC
+            OFFSET :offset ROWS FETCH NEXT :limit ROWS ONLY";
+
+        const string unifiedCountSql = @"SELECT COUNT(*) FROM PTSA.MV_DASHBOARD_CACHE";
+
+        const string bankDataSql = @"
+            SELECT SOURCE, TRANNUMBER AS RRN, MASKEDPAN AS PAN, TERMNAME AS TERMINALID,
+                   RESPCODE, RESPCODE_DESCRIPTION, TIME, TERMRETAILERNAME AS MERCHANTID, DESTINATION
+            FROM PTSA.MV_DASHBOARD_CACHE
+            WHERE INSTITUTION_CODE = UPPER(:inst_code)
+            ORDER BY TIME DESC
+            OFFSET :offset ROWS FETCH NEXT :limit ROWS ONLY";
+
+        const string bankCountSql = @"
+            SELECT COUNT(*) FROM PTSA.MV_DASHBOARD_CACHE WHERE INSTITUTION_CODE = UPPER(:inst_code)";
+
+        const string nonBankDataSql = @"
+            SELECT SOURCE, TRANNUMBER AS RRN, MASKEDPAN AS PAN, TERMNAME AS TERMINALID,
+                   RESPCODE, RESPCODE_DESCRIPTION, TIME, TERMRETAILERNAME AS MERCHANTID, DESTINATION
+            FROM PTSA.MV_DASHBOARD_CACHE
+            WHERE SOURCE1 IN ({0})
+            ORDER BY TIME DESC
+            OFFSET :offset ROWS FETCH NEXT :limit ROWS ONLY";
+
+        const string nonBankCountSql = @"
+            SELECT COUNT(*) FROM PTSA.MV_DASHBOARD_CACHE WHERE SOURCE1 IN ({0})";
+
+        string dataSql, countSql;
+        OracleParameter[]? parameters = null;
+
+        if (instType.Equals("Bank", StringComparison.OrdinalIgnoreCase))
+        {
+            dataSql = bankDataSql;
+            countSql = bankCountSql;
+            parameters = new[]
+            {
+                new OracleParameter("inst_code", instCode ?? ""),
+                new OracleParameter("offset", offset),
+                new OracleParameter("limit", limit)
+            };
+        }
+        else if (instType.Equals("Non Bank", StringComparison.OrdinalIgnoreCase) && !string.Equals(instCode, "UP001", StringComparison.OrdinalIgnoreCase))
+        {
+            var codes = (subCodes ?? "").Split(',', StringSplitOptions.RemoveEmptyEntries | StringSplitOptions.TrimEntries);
+            if (codes.Length == 0) codes = new[] { "WEB", "MOBILE", "USSD", "AGENT", "POS", "ATM" };
+            var placeholders = string.Join(", ", codes.Select((_, i) => $":p{i}"));
+            dataSql = string.Format(nonBankDataSql, placeholders);
+            countSql = string.Format(nonBankCountSql, placeholders);
+            var codeParams = codes.Select((c, i) => new OracleParameter($"p{i}", c)).ToList();
+            codeParams.Add(new OracleParameter("offset", offset));
+            codeParams.Add(new OracleParameter("limit", limit));
+            parameters = codeParams.ToArray();
+        }
+        else
+        {
+            dataSql = unifiedDataSql;
+            countSql = unifiedCountSql;
+            parameters = new[]
+            {
+                new OracleParameter("offset", offset),
+                new OracleParameter("limit", limit)
+            };
+        }
+
+        await using var conn = new OracleConnection(connStr);
+        await conn.OpenAsync();
+
+        // Count
+        await using (var countCmd = new OracleCommand(countSql, conn))
+        {
+            if (instType.Equals("Bank", StringComparison.OrdinalIgnoreCase))
+                countCmd.Parameters.Add(new OracleParameter("inst_code", instCode ?? ""));
+            else if (instType.Equals("Non Bank", StringComparison.OrdinalIgnoreCase) && !string.Equals(instCode, "UP001", StringComparison.OrdinalIgnoreCase))
+            {
+                var codes = (subCodes ?? "").Split(',', StringSplitOptions.RemoveEmptyEntries | StringSplitOptions.TrimEntries);
+                if (codes.Length == 0) codes = new[] { "WEB", "MOBILE", "USSD", "AGENT", "POS", "ATM" };
+                for (int i = 0; i < codes.Length; i++)
+                    countCmd.Parameters.Add(new OracleParameter($"p{i}", codes[i]));
+            }
+            var countResult = await countCmd.ExecuteScalarAsync();
+            total = countResult == null || countResult == DBNull.Value ? 0 : Convert.ToInt64(countResult);
+        }
+
+        // Data
+        await using (var cmd = new OracleCommand(dataSql, conn))
+        {
+            if (parameters != null) cmd.Parameters.AddRange(parameters);
+            await using var rdr = await cmd.ExecuteReaderAsync();
+            while (await rdr.ReadAsync())
+            {
+                rows.Add(new
+                {
+                    Source = rdr.IsDBNull(0) ? null : rdr.GetString(0),
+                    Rrn = rdr.IsDBNull(1) ? null : rdr.GetString(1),
+                    Pan = rdr.IsDBNull(2) ? null : rdr.GetString(2),
+                    TerminalId = rdr.IsDBNull(3) ? null : rdr.GetString(3),
+                    RespCode = rdr.IsDBNull(4) ? 0 : rdr.GetInt32(4),
+                    RespCodeDescription = rdr.IsDBNull(5) ? null : rdr.GetString(5),
+                    Time = rdr.IsDBNull(6) ? (DateTime?)null : rdr.GetDateTime(6),
+                    MerchantId = rdr.IsDBNull(7) ? null : rdr.GetString(7),
+                    Destination = rdr.IsDBNull(8) ? null : rdr.GetString(8)
+                });
+            }
+        }
+
+        return Json(new { data = rows, total, offset, limit });
     }
 
     // ══════════════════════════════════════════════════════════════════════

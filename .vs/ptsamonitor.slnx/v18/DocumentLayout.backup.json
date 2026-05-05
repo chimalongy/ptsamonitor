@@ -3,6 +3,18 @@
   "WorkspaceRootPath": "C:\\Users\\dell\\source\\repos\\ptsamonitor\\",
   "Documents": [
     {
+      "AbsoluteMoniker": "D:0:0:{FD9E52CF-3ACA-3F3D-F992-EBDE694D7D55}|ptsamonitor.csproj|c:\\users\\dell\\source\\repos\\ptsamonitor\\views\\dashboard\\index.cshtml||{40D31677-CBC0-4297-A9EF-89D907823A98}",
+      "RelativeMoniker": "D:0:0:{FD9E52CF-3ACA-3F3D-F992-EBDE694D7D55}|ptsamonitor.csproj|solutionrelative:views\\dashboard\\index.cshtml||{40D31677-CBC0-4297-A9EF-89D907823A98}"
+    },
+    {
+      "AbsoluteMoniker": "D:0:0:{FD9E52CF-3ACA-3F3D-F992-EBDE694D7D55}|ptsamonitor.csproj|c:\\users\\dell\\source\\repos\\ptsamonitor\\controllers\\dashboardcontroller.cs||{A6C744A8-0E4A-4FC6-886A-064283054674}",
+      "RelativeMoniker": "D:0:0:{FD9E52CF-3ACA-3F3D-F992-EBDE694D7D55}|ptsamonitor.csproj|solutionrelative:controllers\\dashboardcontroller.cs||{A6C744A8-0E4A-4FC6-886A-064283054674}"
+    },
+    {
+      "AbsoluteMoniker": "D:0:0:{FD9E52CF-3ACA-3F3D-F992-EBDE694D7D55}|ptsamonitor.csproj|c:\\users\\dell\\source\\repos\\ptsamonitor\\controllers\\dashboardcontroller - copy.cs||{A6C744A8-0E4A-4FC6-886A-064283054674}",
+      "RelativeMoniker": "D:0:0:{FD9E52CF-3ACA-3F3D-F992-EBDE694D7D55}|ptsamonitor.csproj|solutionrelative:controllers\\dashboardcontroller - copy.cs||{A6C744A8-0E4A-4FC6-886A-064283054674}"
+    },
+    {
       "AbsoluteMoniker": "D:0:0:{FD9E52CF-3ACA-3F3D-F992-EBDE694D7D55}|ptsamonitor.csproj|c:\\users\\dell\\source\\repos\\ptsamonitor\\program.cs||{A6C744A8-0E4A-4FC6-886A-064283054674}",
       "RelativeMoniker": "D:0:0:{FD9E52CF-3ACA-3F3D-F992-EBDE694D7D55}|ptsamonitor.csproj|solutionrelative:program.cs||{A6C744A8-0E4A-4FC6-886A-064283054674}"
     }
@@ -23,6 +35,45 @@
             {
               "$type": "Document",
               "DocumentIndex": 0,
+              "Title": "Index.cshtml",
+              "DocumentMoniker": "C:\\Users\\dell\\source\\repos\\ptsamonitor\\Views\\Dashboard\\Index.cshtml",
+              "RelativeDocumentMoniker": "Views\\Dashboard\\Index.cshtml",
+              "ToolTip": "C:\\Users\\dell\\source\\repos\\ptsamonitor\\Views\\Dashboard\\Index.cshtml",
+              "RelativeToolTip": "Views\\Dashboard\\Index.cshtml",
+              "ViewState": "AgIAAE8BAAAAAAAAAAAqwGgBAAAJAAAAAAAAAA==",
+              "Icon": "ae27a6b0-e345-4288-96df-5eaf394ee369.000759|",
+              "WhenOpened": "2026-05-05T15:35:24.525Z",
+              "EditorCaption": ""
+            },
+            {
+              "$type": "Document",
+              "DocumentIndex": 2,
+              "Title": "DashboardController - Copy.cs",
+              "DocumentMoniker": "C:\\Users\\dell\\source\\repos\\ptsamonitor\\Controllers\\DashboardController - Copy.cs",
+              "RelativeDocumentMoniker": "Controllers\\DashboardController - Copy.cs",
+              "ToolTip": "C:\\Users\\dell\\source\\repos\\ptsamonitor\\Controllers\\DashboardController - Copy.cs",
+              "RelativeToolTip": "Controllers\\DashboardController - Copy.cs",
+              "ViewState": "AgIAAAsBAAAAAAAAAAAAADUBAAAAAAAAAAAAAA==",
+              "Icon": "ae27a6b0-e345-4288-96df-5eaf394ee369.000738|",
+              "WhenOpened": "2026-05-05T15:34:14.37Z",
+              "EditorCaption": ""
+            },
+            {
+              "$type": "Document",
+              "DocumentIndex": 1,
+              "Title": "DashboardController.cs",
+              "DocumentMoniker": "C:\\Users\\dell\\source\\repos\\ptsamonitor\\Controllers\\DashboardController.cs",
+              "RelativeDocumentMoniker": "Controllers\\DashboardController.cs",
+              "ToolTip": "C:\\Users\\dell\\source\\repos\\ptsamonitor\\Controllers\\DashboardController.cs",
+              "RelativeToolTip": "Controllers\\DashboardController.cs",
+              "ViewState": "AgIAAIcCAAAAAAAAAAAowJwCAAAlAAAAAAAAAA==",
+              "Icon": "ae27a6b0-e345-4288-96df-5eaf394ee369.000738|",
+              "WhenOpened": "2026-05-05T15:33:51.536Z",
+              "EditorCaption": ""
+            },
+            {
+              "$type": "Document",
+              "DocumentIndex": 3,
               "Title": "Program.cs",
               "DocumentMoniker": "C:\\Users\\dell\\source\\repos\\ptsamonitor\\Program.cs",
               "RelativeDocumentMoniker": "Program.cs",

@@ -14,7 +14,7 @@ using System.Reflection;
 [assembly: System.Reflection.AssemblyCompanyAttribute("ptsamonitor")]
 [assembly: System.Reflection.AssemblyConfigurationAttribute("Debug")]
 [assembly: System.Reflection.AssemblyFileVersionAttribute("1.0.0.0")]
-[assembly: System.Reflection.AssemblyInformationalVersionAttribute("1.0.0+eaf59aac2aa5a4e247c51504238d89bd943631f1")]
+[assembly: System.Reflection.AssemblyInformationalVersionAttribute("1.0.0+c89cba9d7f7c8f351cc990d4f95f1d830b48b211")]
 [assembly: System.Reflection.AssemblyProductAttribute("ptsamonitor")]
 [assembly: System.Reflection.AssemblyTitleAttribute("ptsamonitor")]
 [assembly: System.Reflection.AssemblyVersionAttribute("1.0.0.0")]

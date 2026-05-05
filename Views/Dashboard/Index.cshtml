@@ -16,142 +16,357 @@
     .fade-up-1 { animation-delay: 0.05s; }
     .fade-up-2 { animation-delay: 0.15s; }
     .fade-up-3 { animation-delay: 0.25s; }
+    .chart-container {
+        position: relative;
+        height: 320px;
+        width: 100%;
+    }
+    .txn-table th {
+        position: sticky;
+        top: 0;
+        z-index: 10;
+    }
+    .status-approved { color: #16a34a; font-weight: 600; }
+    .status-failed { color: #dc2626; font-weight: 600; }
+    .loading-spinner {
+        display: inline-block;
+        width: 24px;
+        height: 24px;
+        border: 3px solid rgba(0,0,0,0.1);
+        border-radius: 50%;
+        border-top-color: #3b82f6;
+        animation: spin 1s ease-in-out infinite;
+    }
+    @@keyframes spin {
+        to { transform: rotate(360deg); }
+    }
 </style>
 
-@* ── Welcome ── *@
-<div class="mb-8 fade-up fade-up-1">
-    <h1 class="text-text-primary text-2xl font-semibold font-display">Welcome to PTSA Monitor</h1>
-    <p class="text-text-muted text-sm mt-1">Real-time transaction monitoring and institution management.</p>
+@* ── Welcome Header ── *@
+<div class="mb-6 fade-up fade-up-1">
+    <h1 class="text-text-primary text-2xl font-semibold font-display">Dashboard</h1>
+    <p class="text-text-muted text-sm mt-1">Today's transaction overview for your institution.</p>
 </div>
 
-@* ── Stats cards ── *@
-<div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4 mb-8">
+@* ── Charts Row ── *@
+<div class="grid grid-cols-1 lg:grid-cols-3 gap-4 mb-6">
+    @* Pie Chart *@
     <div class="bg-surface-card border border-border rounded-2xl p-5 fade-up fade-up-1">
-        <div class="flex items-center gap-3 mb-3">
-            <div class="w-10 h-10 rounded-xl bg-brand-50 flex items-center justify-center">
-                <svg class="w-5 h-5 text-brand-500" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24">
-                    <path d="M12 2v20M17 5H9.5a3.5 3.5 0 000 7h5a3.5 3.5 0 010 7H6"/>
-                </svg>
+        <h3 class="text-text-primary text-sm font-semibold mb-3 flex items-center gap-2">
+            <svg class="w-4 h-4 text-brand-500" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24">
+                <path d="M21.21 15.89A10 10 0 118 2.83"/>
+                <path d="M22 12A10 10 0 0012 2v10z"/>
+            </svg>
+            Response Code Breakdown
+        </h3>
+        <div class="chart-container" id="pieChartContainer">
+            <div class="flex items-center justify-center h-full">
+                <div class="loading-spinner"></div>
             </div>
-            <span class="text-text-secondary text-xs font-medium">Transactions Today</span>
         </div>
-        <p class="text-text-primary text-2xl font-semibold">—</p>
-        <p class="text-text-muted text-xs mt-1">Coming soon</p>
     </div>
 
+    @* Donut Chart *@
     <div class="bg-surface-card border border-border rounded-2xl p-5 fade-up fade-up-2">
-        <div class="flex items-center gap-3 mb-3">
-            <div class="w-10 h-10 rounded-xl bg-brand-50 flex items-center justify-center">
-                <svg class="w-5 h-5 text-brand-500" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24">
-                    <path d="M3 21h18M5 21V7l8-4 8 4v14M9 21v-6h6v6"/>
-                </svg>
+        <h3 class="text-text-primary text-sm font-semibold mb-3 flex items-center gap-2">
+            <svg class="w-4 h-4 text-red-500" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24">
+                <circle cx="12" cy="12" r="10"/>
+                <path d="M16.2 7.8l-2 6.3 -4.2-2.1"/>
+            </svg>
+            Failed Transactions
+        </h3>
+        <div class="chart-container" id="donutChartContainer">
+            <div class="flex items-center justify-center h-full">
+                <div class="loading-spinner"></div>
             </div>
-            <span class="text-text-secondary text-xs font-medium">Institutions</span>
         </div>
-        <p class="text-text-primary text-2xl font-semibold" id="institutionCount">—</p>
-        <p class="text-text-muted text-xs mt-1">Total registered</p>
     </div>
 
+    @* Bar Chart *@
     <div class="bg-surface-card border border-border rounded-2xl p-5 fade-up fade-up-3">
-        <div class="flex items-center gap-3 mb-3">
-            <div class="w-10 h-10 rounded-xl bg-brand-50 flex items-center justify-center">
-                <svg class="w-5 h-5 text-brand-500" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24">
-                    <path d="M17 21v-2a4 4 0 00-4-4H5a4 4 0 00-4 4v2"/>
-                    <circle cx="9" cy="7" r="4"/>
-                    <path d="M23 21v-2a4 4 0 00-3-3.87M16 3.13a4 4 0 010 7.75"/>
-                </svg>
+        <h3 class="text-text-primary text-sm font-semibold mb-3 flex items-center gap-2">
+            <svg class="w-4 h-4 text-green-500" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24">
+                <path d="M18 20V10M12 20V4M6 20v-6"/>
+            </svg>
+            Transactions by Institution
+        </h3>
+        <div class="chart-container" id="barChartContainer">
+            <div class="flex items-center justify-center h-full">
+                <div class="loading-spinner"></div>
             </div>
-            <span class="text-text-secondary text-xs font-medium">Users</span>
         </div>
-        <p class="text-text-primary text-2xl font-semibold" id="userCount">—</p>
-        <p class="text-text-muted text-xs mt-1">Active system users</p>
-    </div>
-
-    <div class="bg-surface-card border border-border rounded-2xl p-5 fade-up fade-up-3">
-        <div class="flex items-center gap-3 mb-3">
-            <div class="w-10 h-10 rounded-xl bg-green-50 flex items-center justify-center">
-                <svg class="w-5 h-5 text-green-500" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24">
-                    <path d="M22 12h-4l-3 9L9 3l-3 9H2"/>
-                </svg>
-            </div>
-            <span class="text-text-secondary text-xs font-medium">System Status</span>
-        </div>
-        <p class="text-green-600 text-2xl font-semibold">Online</p>
-        <p class="text-text-muted text-xs mt-1">All systems operational</p>
     </div>
 </div>
 
-@* ── Quick links ── *@
-<div class="bg-surface-card border border-border rounded-2xl p-6 fade-up fade-up-2">
-    <h3 class="text-text-primary text-sm font-semibold mb-4">Quick Actions</h3>
-    <div class="grid grid-cols-1 sm:grid-cols-3 gap-3">
-        <a asp-controller="Dashboard" asp-action="Institutions"
-           class="flex items-center gap-3 p-4 border border-border rounded-xl hover:border-brand-300 hover:bg-brand-50 transition-colors group">
-            <div class="w-10 h-10 rounded-lg bg-brand-100 flex items-center justify-center group-hover:bg-brand-200 transition-colors">
-                <svg class="w-5 h-5 text-brand-600" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24">
-                    <path d="M3 21h18M5 21V7l8-4 8 4v14M9 21v-6h6v6"/>
-                </svg>
-            </div>
-            <div>
-                <p class="text-text-primary text-sm font-medium">Manage Institutions</p>
-                <p class="text-text-muted text-xs">Add or edit institutions</p>
-            </div>
+@* ── Transaction Table ── *@
+<div class="bg-surface-card border border-border rounded-2xl p-5 fade-up fade-up-2">
+    <div class="flex items-center justify-between mb-4">
+        <h3 class="text-text-primary text-sm font-semibold flex items-center gap-2">
+            <svg class="w-4 h-4 text-brand-500" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24">
+                <path d="M3 6h18M3 12h18M3 18h12"/>
+            </svg>
+            Recent Transactions
+            <span class="text-text-muted text-xs font-normal" id="txnCountBadge">(loading...)</span>
+        </h3>
+        <a asp-controller="Dashboard" asp-action="Transactions" class="text-brand-600 text-xs font-medium hover:underline">
+            View All →
         </a>
-
-        <a asp-controller="Dashboard" asp-action="Users"
-           class="flex items-center gap-3 p-4 border border-border rounded-xl hover:border-brand-300 hover:bg-brand-50 transition-colors group">
-            <div class="w-10 h-10 rounded-lg bg-brand-100 flex items-center justify-center group-hover:bg-brand-200 transition-colors">
-                <svg class="w-5 h-5 text-brand-600" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24">
-                    <path d="M17 21v-2a4 4 0 00-4-4H5a4 4 0 00-4 4v2"/>
-                    <circle cx="9" cy="7" r="4"/>
-                    <path d="M23 21v-2a4 4 0 00-3-3.87M16 3.13a4 4 0 010 7.75"/>
-                </svg>
-            </div>
-            <div>
-                <p class="text-text-primary text-sm font-medium">Manage Users</p>
-                <p class="text-text-muted text-xs">Add or edit users</p>
-            </div>
-        </a>
-
-        <a asp-controller="Dashboard" asp-action="Audit"
-           class="flex items-center gap-3 p-4 border border-border rounded-xl hover:border-brand-300 hover:bg-brand-50 transition-colors group">
-            <div class="w-10 h-10 rounded-lg bg-brand-100 flex items-center justify-center group-hover:bg-brand-200 transition-colors">
-                <svg class="w-5 h-5 text-brand-600" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24">
-                    <path d="M14 2H6a2 2 0 00-2 2v16a2 2 0 002 2h12a2 2 0 002-2V8z"/>
-                    <polyline points="14 2 14 8 20 8"/>
-                </svg>
-            </div>
-            <div>
-                <p class="text-text-primary text-sm font-medium">View Audit Logs</p>
-                <p class="text-text-muted text-xs">Track system activity</p>
-            </div>
-        </a>
+    </div>
+    <div class="overflow-x-auto">
+        <table class="w-full text-left text-sm txn-table">
+            <thead>
+                <tr class="border-b border-border bg-surface-hover">
+                    <th class="px-3 py-2.5 text-text-secondary text-xs font-medium uppercase tracking-wider">Time</th>
+                    <th class="px-3 py-2.5 text-text-secondary text-xs font-medium uppercase tracking-wider">RRN</th>
+                    <th class="px-3 py-2.5 text-text-secondary text-xs font-medium uppercase tracking-wider">PAN</th>
+                    <th class="px-3 py-2.5 text-text-secondary text-xs font-medium uppercase tracking-wider">Terminal</th>
+                    <th class="px-3 py-2.5 text-text-secondary text-xs font-medium uppercase tracking-wider">Merchant</th>
+                    <th class="px-3 py-2.5 text-text-secondary text-xs font-medium uppercase tracking-wider">Source → Dest</th>
+                    <th class="px-3 py-2.5 text-text-secondary text-xs font-medium uppercase tracking-wider">Resp</th>
+                    <th class="px-3 py-2.5 text-text-secondary text-xs font-medium uppercase tracking-wider text-right">Status</th>
+                </tr>
+            </thead>
+            <tbody id="txnTableBody">
+                <tr>
+                    <td colspan="8" class="px-3 py-8 text-center text-text-muted text-sm">
+                        <div class="flex items-center justify-center gap-2">
+                            <div class="loading-spinner"></div>
+                            Loading transactions...
+                        </div>
+                    </td>
+                </tr>
+            </tbody>
+        </table>
     </div>
 </div>
 
 @section Scripts {
+<script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.1/dist/chart.umd.min.js"></script>
 <script>
-    async function loadStats() {
+    // ── Colour palette ──
+    const colours = [
+        '#3b82f6', '#10b981', '#f59e0b', '#ef4444', '#8b5cf6',
+        '#ec4899', '#06b6d4', '#84cc16', '#f97316', '#6366f1'
+    ];
+
+    function formatCurrency(amount) {
+        return new Intl.NumberFormat('en-NG', { style: 'currency', currency: 'NGN' }).format(amount);
+    }
+
+    function formatDateTime(dt) {
+        if (!dt) return '—';
+        const d = new Date(dt);
+        return d.toLocaleString('en-GB', { day: '2-digit', month: 'short', hour: '2-digit', minute: '2-digit' });
+    }
+
+    function getStatusClass(respCode) {
+        return (respCode === 0 || respCode === '0' || respCode === '00') ? 'status-approved' : 'status-failed';
+    }
+
+    function getStatusText(respCode) {
+        return (respCode === 0 || respCode === '0' || respCode === '00') ? 'Approved' : 'Failed';
+    }
+
+    // ── Pie Chart ──
+    async function loadPieChart() {
         try {
-            const [instRes, userRes] = await Promise.all([
-                fetch('/Dashboard/Institutions/GetAll'),
-                fetch('/Dashboard/Users/GetAll')
-            ]);
+            const res = await fetch('/Dashboard/Api/PieChart');
+            const data = await res.json();
+            const container = document.getElementById('pieChartContainer');
+            container.innerHTML = '<canvas id="pieChart"></canvas>';
 
-            if (instRes.ok) {
-                const institutions = await instRes.json();
-                document.getElementById('institutionCount').textContent = institutions.length || 0;
-            }
-
-            if (userRes.ok) {
-                const users = await userRes.json();
-                document.getElementById('userCount').textContent = users.length || 0;
-            }
+            const ctx = document.getElementById('pieChart').getContext('2d');
+            new Chart(ctx, {
+                type: 'pie',
+                data: {
+                    labels: data.map(d => d.respCodeDescription || `Code ${d.respCode}`),
+                    datasets: [{
+                        data: data.map(d => d.txnCount),
+                        backgroundColor: colours,
+                        borderWidth: 1,
+                        borderColor: '#ffffff'
+                    }]
+                },
+                options: {
+                    responsive: true,
+                    maintainAspectRatio: false,
+                    plugins: {
+                        legend: { position: 'bottom', labels: { boxWidth: 12, font: { size: 11 } } },
+                        tooltip: {
+                            callbacks: {
+                                label: function(context) {
+                                    const d = data[context.dataIndex];
+                                    return `${d.respCodeDescription}: ${d.txnCount.toLocaleString()} txns (${formatCurrency(d.totalAmount)})`;
+                                }
+                            }
+                        }
+                    }
+                }
+            });
         } catch (err) {
-            console.error('Failed to load stats:', err);
+            document.getElementById('pieChartContainer').innerHTML =
+                '<div class="flex items-center justify-center h-full text-text-muted text-sm">Failed to load chart</div>';
+            console.error('Pie chart error:', err);
         }
     }
 
-    loadStats();
+    // ── Donut Chart ──
+    async function loadDonutChart() {
+        try {
+            const res = await fetch('/Dashboard/Api/DonutChart');
+            const data = await res.json();
+            const container = document.getElementById('donutChartContainer');
+            container.innerHTML = '<canvas id="donutChart"></canvas>';
+
+            const ctx = document.getElementById('donutChart').getContext('2d');
+            new Chart(ctx, {
+                type: 'doughnut',
+                data: {
+                    labels: data.map(d => d.respCodeDescription || 'Unknown'),
+                    datasets: [{
+                        data: data.map(d => d.txnCount),
+                        backgroundColor: colours.slice(1), // skip blue for variety
+                        borderWidth: 1,
+                        borderColor: '#ffffff'
+                    }]
+                },
+                options: {
+                    responsive: true,
+                    maintainAspectRatio: false,
+                    cutout: '60%',
+                    plugins: {
+                        legend: { position: 'bottom', labels: { boxWidth: 12, font: { size: 11 } } },
+                        tooltip: {
+                            callbacks: {
+                                label: function(context) {
+                                    const d = data[context.dataIndex];
+                                    return `${d.respCodeDescription}: ${d.txnCount.toLocaleString()} failed txns`;
+                                }
+                            }
+                        }
+                    }
+                }
+            });
+        } catch (err) {
+            document.getElementById('donutChartContainer').innerHTML =
+                '<div class="flex items-center justify-center h-full text-text-muted text-sm">Failed to load chart</div>';
+            console.error('Donut chart error:', err);
+        }
+    }
+
+    // ── Bar Chart ──
+    async function loadBarChart() {
+        try {
+            const res = await fetch('/Dashboard/Api/BarChart');
+            const data = await res.json();
+            const container = document.getElementById('barChartContainer');
+            container.innerHTML = '<canvas id="barChart"></canvas>';
+
+            const ctx = document.getElementById('barChart').getContext('2d');
+            new Chart(ctx, {
+                type: 'bar',
+                data: {
+                    labels: data.map(d => d.inst || 'Unknown'),
+                    datasets: [{
+                        label: 'Transactions',
+                        data: data.map(d => d.txnCount),
+                        backgroundColor: '#3b82f6',
+                        borderRadius: 4,
+                        barPercentage: 0.7
+                    }]
+                },
+                options: {
+                    responsive: true,
+                    maintainAspectRatio: false,
+                    plugins: {
+                        legend: { display: false },
+                        tooltip: {
+                            callbacks: {
+                                label: function(context) {
+                                    return `${context.parsed.y.toLocaleString()} transactions`;
+                                }
+                            }
+                        }
+                    },
+                    scales: {
+                        y: {
+                            beginAtZero: true,
+                            ticks: { font: { size: 11 } },
+                            grid: { color: 'rgba(0,0,0,0.05)' }
+                        },
+                        x: {
+                            ticks: { font: { size: 10 }, maxRotation: 45, minRotation: 0 },
+                            grid: { display: false }
+                        }
+                    }
+                }
+            });
+        } catch (err) {
+            document.getElementById('barChartContainer').innerHTML =
+                '<div class="flex items-center justify-center h-full text-text-muted text-sm">Failed to load chart</div>';
+            console.error('Bar chart error:', err);
+        }
+    }
+
+    // ── Transaction Table (limit 100) ──
+    async function loadTransactions() {
+        try {
+            const res = await fetch('/Dashboard/Api/Transactions?offset=0&limit=100');
+            const result = await res.json();
+            const tbody = document.getElementById('txnTableBody');
+            const badge = document.getElementById('txnCountBadge');
+
+            badge.textContent = `(${result.total?.toLocaleString() || 0} total)`;
+
+            if (!result.data || result.data.length === 0) {
+                tbody.innerHTML = `
+                    <tr>
+                        <td colspan="8" class="px-3 py-8 text-center text-text-muted text-sm">
+                            No transactions found for today.
+                        </td>
+                    </tr>`;
+                return;
+            }
+
+            tbody.innerHTML = result.data.map(t => `
+                <tr class="border-b border-border hover:bg-surface-hover transition-colors">
+                    <td class="px-3 py-2.5 text-text-secondary text-xs whitespace-nowrap">${formatDateTime(t.time)}</td>
+                    <td class="px-3 py-2.5 text-text-primary font-mono text-xs">${t.rrn || '—'}</td>
+                    <td class="px-3 py-2.5 text-text-primary text-xs">${t.pan || '—'}</td>
+                    <td class="px-3 py-2.5 text-text-secondary text-xs">${t.terminalId || '—'}</td>
+                    <td class="px-3 py-2.5 text-text-secondary text-xs">${t.merchantId || '—'}</td>
+                    <td class="px-3 py-2.5 text-text-secondary text-xs">
+                        <span class="text-text-primary">${t.source || '—'}</span>
+                        <span class="text-text-muted mx-1">→</span>
+                        <span class="text-text-primary">${t.destination || '—'}</span>
+                    </td>
+                    <td class="px-3 py-2.5 text-xs">
+                        <span class="inline-flex items-center px-2 py-0.5 rounded-full text-xs font-medium ${getStatusClass(t.respCode)}">
+                            ${t.respCode}
+                        </span>
+                    </td>
+                    <td class="px-3 py-2.5 text-right text-xs ${getStatusClass(t.respCode)}">
+                        ${getStatusText(t.respCode)}
+                    </td>
+                </tr>
+            `).join('');
+        } catch (err) {
+            document.getElementById('txnTableBody').innerHTML = `
+                <tr>
+                    <td colspan="8" class="px-3 py-8 text-center text-red-500 text-sm">
+                        Failed to load transactions. Please refresh the page.
+                    </td>
+                </tr>`;
+            console.error('Transaction table error:', err);
+        }
+    }
+
+    // ── Init ──
+    document.addEventListener('DOMContentLoaded', () => {
+        loadPieChart();
+        loadDonutChart();
+        loadBarChart();
+        loadTransactions();
+    });
 </script>
 }
