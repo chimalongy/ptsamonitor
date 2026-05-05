@@ -1,0 +1,227 @@
+================================================================================
+  PTSA DASHBOARD QUERIES — MV_DASHBOARD_CACHE
+  Generated: 2026-05-05
+================================================================================
+
+
+================================================================================
+  SECTION 1: UNIFIED PAYMENTS
+================================================================================
+
+-- ─────────────────────────────────────────────────────────────────────────────
+-- PIE CHART (Transaction Count & Amount by Response Code)
+-- ─────────────────────────────────────────────────────────────────────────────
+SELECT 
+    COUNT(1)            AS TXN_COUNT,
+    SUM(AMOUNT)         AS TOTAL_AMOUNT,
+    RESPCODE,
+    RESPCODE_DESCRIPTION
+FROM PTSA.MV_DASHBOARD_CACHE
+GROUP BY RESPCODE, RESPCODE_DESCRIPTION
+ORDER BY TXN_COUNT DESC;
+
+
+-- ─────────────────────────────────────────────────────────────────────────────
+-- DONUT CHART (Failed Transactions by Status Description)
+-- ─────────────────────────────────────────────────────────────────────────────
+SELECT 
+    RESPCODE_DESCRIPTION,
+    COUNT(DISTINCT ID)  AS TXN_COUNT
+FROM PTSA.MV_DASHBOARD_CACHE
+WHERE RESPCODE NOT IN (0, 00)
+GROUP BY RESPCODE_DESCRIPTION
+ORDER BY RESPCODE_DESCRIPTION;
+
+
+-- ─────────────────────────────────────────────────────────────────────────────
+-- BAR CHART (Transactions by Institution)
+-- ─────────────────────────────────────────────────────────────────────────────
+SELECT 
+    COUNT(1)            AS TXN_COUNT,
+    INST
+FROM PTSA.MV_DASHBOARD_CACHE
+GROUP BY INST
+ORDER BY TXN_COUNT DESC;
+
+
+-- ─────────────────────────────────────────────────────────────────────────────
+-- TRANSACTION TABLE — Data (Paginated)
+-- ─────────────────────────────────────────────────────────────────────────────
+SELECT 
+    SOURCE,
+    TRANNUMBER          AS RRN,
+    MASKEDPAN           AS PAN,
+    TERMNAME            AS TERMINALID,
+    RESPCODE,
+    RESPCODE_DESCRIPTION,
+    TIME,
+    TERMRETAILERNAME    AS MERCHANTID,
+    DESTINATION
+FROM PTSA.MV_DASHBOARD_CACHE
+ORDER BY TIME DESC
+OFFSET :offset ROWS FETCH NEXT :limit ROWS ONLY;
+
+-- TRANSACTION TABLE — Count
+SELECT COUNT(*) AS TOTAL
+FROM PTSA.MV_DASHBOARD_CACHE;
+
+
+================================================================================
+  SECTION 2: BANKS
+  Filter: INSTITUTION_CODE = UPPER(:inst_code)
+  Example values: 'N53', 'TL1', 'QEF', 'EFM', etc.
+================================================================================
+
+-- ─────────────────────────────────────────────────────────────────────────────
+-- PIE CHART
+-- ─────────────────────────────────────────────────────────────────────────────
+SELECT 
+    COUNT(1)            AS TXN_COUNT,
+    SUM(AMOUNT)         AS TOTAL_AMOUNT,
+    RESPCODE,
+    RESPCODE_DESCRIPTION
+FROM PTSA.MV_DASHBOARD_CACHE
+WHERE INSTITUTION_CODE = UPPER(:inst_code)
+GROUP BY RESPCODE, RESPCODE_DESCRIPTION
+ORDER BY TXN_COUNT DESC;
+
+
+-- ─────────────────────────────────────────────────────────────────────────────
+-- DONUT CHART
+-- ─────────────────────────────────────────────────────────────────────────────
+SELECT 
+    RESPCODE_DESCRIPTION,
+    COUNT(DISTINCT ID)  AS TXN_COUNT
+FROM PTSA.MV_DASHBOARD_CACHE
+WHERE RESPCODE NOT IN (0, 00)
+  AND INSTITUTION_CODE = UPPER(:inst_code)
+GROUP BY RESPCODE_DESCRIPTION
+ORDER BY RESPCODE_DESCRIPTION;
+
+
+-- ─────────────────────────────────────────────────────────────────────────────
+-- BAR CHART
+-- ─────────────────────────────────────────────────────────────────────────────
+SELECT 
+    COUNT(1)            AS TXN_COUNT,
+    INST
+FROM PTSA.MV_DASHBOARD_CACHE
+WHERE INSTITUTION_CODE = UPPER(:inst_code)
+GROUP BY INST
+ORDER BY TXN_COUNT DESC;
+
+
+-- ─────────────────────────────────────────────────────────────────────────────
+-- TRANSACTION TABLE — Data (Paginated)
+-- ─────────────────────────────────────────────────────────────────────────────
+SELECT 
+    SOURCE,
+    TRANNUMBER          AS RRN,
+    MASKEDPAN           AS PAN,
+    TERMNAME            AS TERMINALID,
+    RESPCODE,
+    RESPCODE_DESCRIPTION,
+    TIME,
+    TERMRETAILERNAME    AS MERCHANTID,
+    DESTINATION
+FROM PTSA.MV_DASHBOARD_CACHE
+WHERE INSTITUTION_CODE = UPPER(:inst_code)
+ORDER BY TIME DESC
+OFFSET :offset ROWS FETCH NEXT :limit ROWS ONLY;
+
+-- TRANSACTION TABLE — Count
+SELECT COUNT(*) AS TOTAL
+FROM PTSA.MV_DASHBOARD_CACHE
+WHERE INSTITUTION_CODE = UPPER(:inst_code);
+
+
+================================================================================
+  SECTION 3: NON-BANKS
+  Filter: SOURCE1 IN (:code1, :code2, ...)
+  Example values: 'WEB', 'MOBILE', 'USSD', 'AGENT', 'POS', 'ATM', etc.
+================================================================================
+
+-- ─────────────────────────────────────────────────────────────────────────────
+-- PIE CHART
+-- ─────────────────────────────────────────────────────────────────────────────
+SELECT 
+    COUNT(1)            AS TXN_COUNT,
+    SUM(AMOUNT)         AS TOTAL_AMOUNT,
+    RESPCODE,
+    RESPCODE_DESCRIPTION
+FROM PTSA.MV_DASHBOARD_CACHE
+WHERE SOURCE1 IN (:code1, :code2, :code3)
+GROUP BY RESPCODE, RESPCODE_DESCRIPTION
+ORDER BY TXN_COUNT DESC;
+
+
+-- ─────────────────────────────────────────────────────────────────────────────
+-- DONUT CHART
+-- ─────────────────────────────────────────────────────────────────────────────
+SELECT 
+    RESPCODE_DESCRIPTION,
+    COUNT(DISTINCT ID)  AS TXN_COUNT
+FROM PTSA.MV_DASHBOARD_CACHE
+WHERE RESPCODE NOT IN (0, 00)
+  AND SOURCE1 IN (:code1, :code2, :code3)
+GROUP BY RESPCODE_DESCRIPTION
+ORDER BY RESPCODE_DESCRIPTION;
+
+
+-- ─────────────────────────────────────────────────────────────────────────────
+-- BAR CHART
+-- ─────────────────────────────────────────────────────────────────────────────
+SELECT 
+    COUNT(1)            AS TXN_COUNT,
+    INST
+FROM PTSA.MV_DASHBOARD_CACHE
+WHERE SOURCE1 IN (:code1, :code2, :code3)
+GROUP BY INST
+ORDER BY TXN_COUNT DESC;
+
+
+-- ─────────────────────────────────────────────────────────────────────────────
+-- TRANSACTION TABLE — Data (Paginated)
+-- ─────────────────────────────────────────────────────────────────────────────
+SELECT 
+    SOURCE,
+    TRANNUMBER          AS RRN,
+    MASKEDPAN           AS PAN,
+    TERMNAME            AS TERMINALID,
+    RESPCODE,
+    RESPCODE_DESCRIPTION,
+    TIME,
+    TERMRETAILERNAME    AS MERCHANTID,
+    DESTINATION
+FROM PTSA.MV_DASHBOARD_CACHE
+WHERE SOURCE1 IN (:code1, :code2, :code3)
+ORDER BY TIME DESC
+OFFSET :offset ROWS FETCH NEXT :limit ROWS ONLY;
+
+-- TRANSACTION TABLE — Count
+SELECT COUNT(*) AS TOTAL
+FROM PTSA.MV_DASHBOARD_CACHE
+WHERE SOURCE1 IN (:code1, :code2, :code3);
+
+
+================================================================================
+  PARAMETER REFERENCE
+================================================================================
+
+  :inst_code   VARCHAR2   3-char institution code   e.g. 'N53', 'TL1', 'QEF'
+  :code1..N    VARCHAR2   Non-bank channel codes    e.g. 'MOBILE', 'USSD', 'WEB', 'AGENT'
+  :offset      NUMBER     Pagination start row      e.g. 0, 20, 40, 60
+  :limit       NUMBER     Rows per page             e.g. 20, 50, 100
+
+================================================================================
+  NOTES
+================================================================================
+
+  - All queries target PTSA.MV_DASHBOARD_CACHE (no live DATAMART scans)
+  - MV is refreshed every 5 minutes via PTSA.REFRESH_MV_DASHBOARD_CACHE job
+  - MV covers only TODAY's transactions (TIME >= TRUNC(SYSDATE) AND TIME < TRUNC(SYSDATE)+1)
+  - All filter columns are indexed: RESPCODE, INSTITUTION_CODE, SOURCE1, TIME
+  - RESPCODE = 0 means approved; all others are failures (used in DONUT chart)
+  - MASKEDPAN is used in the transaction table instead of raw PAN for security
+
+================================================================================

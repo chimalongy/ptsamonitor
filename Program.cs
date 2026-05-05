@@ -4,27 +4,49 @@ using Oracle.ManagedDataAccess.Client;
 using ptsamonitor.Classes.Utils;
 using ptsamonitor.Data;
 using ptsamonitor.Services;
+using ptsamonitor.Workers;
+using StackExchange.Redis;
+
 
 var builder = WebApplication.CreateBuilder(args);
 
-string connstring = "User Id=TADEYI;Password=tadeyi123;Data Source=localhost:1521/xepdb1;Pooling=true;Min Pool Size=1;Max Pool Size=50;";
+string connstring = "User Id=PTSA;Password=ptsa1234;Data Source=(DESCRIPTION=(ADDRESS=(PROTOCOL=TCP)(HOST=localhost)(PORT=1521))(CONNECT_DATA=(SERVICE_NAME=XEPDB1)));";
 string encryptedConnstring = Cryptor.Encrypt(connstring, true);
 
 
+
+
 // ── Database ──────────────────────────────────────────────────────────────────
-string? encryptedConnectionString = builder.Configuration.GetConnectionString("DefaultConnection");
-if (string.IsNullOrEmpty(encryptedConnectionString))
+string? encryptedUsersConnectionString = builder.Configuration.GetConnectionString("DefaultConnection");
+if (string.IsNullOrEmpty(encryptedUsersConnectionString))
     throw new Exception("Connection string 'DefaultConnection' not found.");
 
-string decryptedConnectionString = Cryptor.Decrypt(encryptedConnectionString, true);
-
+string decryptedUsersConnectionString = Cryptor.Decrypt(encryptedUsersConnectionString, true);
 // Validate Oracle connection string format
-if (!decryptedConnectionString.Contains("Data Source", StringComparison.OrdinalIgnoreCase))
+if (!decryptedUsersConnectionString.Contains("Data Source", StringComparison.OrdinalIgnoreCase))
     throw new Exception("Invalid Oracle connection string. Expected 'Data Source' parameter.");
 
 builder.Services.AddDbContext<AppDbContext>(options =>
-    options.UseOracle(decryptedConnectionString, opts =>
+    options.UseOracle(decryptedUsersConnectionString, opts =>
         opts.MigrationsHistoryTable("__EFMigrationsHistory", "TADEYI")));
+
+
+
+// Register Redis as a singleton — one connection shared across the app
+builder.Services.AddSingleton<IConnectionMultiplexer>(sp =>
+{
+    var connStr = builder.Configuration.GetConnectionString("Redis");
+    return ConnectionMultiplexer.Connect(connStr);
+});
+
+builder.Services.AddSingleton<DashboardCacheService>();
+builder.Services.AddHostedService<CacheRefreshWorker>();
+
+
+
+
+
+
 
 // ── Authentication (Cookie-based) ─────────────────────────────────────────────
 builder.Services.AddAuthentication(options =>

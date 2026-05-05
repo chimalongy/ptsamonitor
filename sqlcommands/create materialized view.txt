@@ -1,0 +1,109 @@
+/* ============================================================
+   1) DROP EXISTING MV (if it exists)
+   ============================================================ */
+BEGIN
+    EXECUTE IMMEDIATE 'DROP MATERIALIZED VIEW PTSA.MV_DASHBOARD_CACHE';
+EXCEPTION
+    WHEN OTHERS THEN
+        IF SQLCODE != -12003 THEN
+            RAISE;
+        END IF;
+END;
+/
+ 
+
+/* ============================================================
+   2) DROP EXISTING SCHEDULER JOB (if it exists)
+   ============================================================ */
+BEGIN
+    DBMS_SCHEDULER.DROP_JOB('PTSA.REFRESH_MV_DASHBOARD_CACHE', FORCE => TRUE);
+EXCEPTION
+    WHEN OTHERS THEN
+        IF SQLCODE != -27475 THEN
+            RAISE;
+        END IF;
+END;
+/
+ 
+
+/* ============================================================
+   3) CREATE MATERIALIZED VIEW
+   - Covers Unified Payments, Banks, Non-Banks
+   - Fixes APPROVAL2 duplicates by selecting unique CODE first
+   ============================================================ */
+CREATE MATERIALIZED VIEW PTSA.MV_DASHBOARD_CACHE
+BUILD IMMEDIATE
+REFRESH COMPLETE ON DEMAND
+AS
+SELECT
+    d.ID,
+    d.TRANSID,
+    d.TRANNUMBER,
+    d.TIME,
+    d.SOURCE,
+    d.SOURCE1,
+    d.DESTINATION,
+    d.RESPCODE,
+    NVL(r.DESCRIPTION, 'Error') AS RESPCODE_DESCRIPTION,
+    d.TERMNAME,
+    d.TERMRETAILERNAME,
+    NVL(d.DESTINATION, d.AUTHFINAME) AS INST,
+    d.PAN,
+    d.MASKEDPAN,
+    d.AUTHFINAME,
+    d.AMOUNT,
+    UPPER(SUBSTR(d.TERMNAME, 2, 3)) AS INSTITUTION_CODE
+FROM PTSA.DATAMART d
+LEFT JOIN (
+    SELECT
+        CODE,
+        MAX(DECRIPTION) AS DESCRIPTION
+    FROM PTSA.APPROVAL2
+    GROUP BY CODE
+) r
+    ON d.RESPCODE = r.CODE
+WHERE d.TIME >= TRUNC(SYSDATE)
+  AND d.TIME < TRUNC(SYSDATE) + 1;
+/
+ 
+
+/* ============================================================
+   4) OPTIONAL INDEXES (RECOMMENDED)
+   ============================================================ */
+CREATE INDEX PTSA.IDX_MV_DASHBOARD_TIME
+ON PTSA.MV_DASHBOARD_CACHE (TIME);
+
+CREATE INDEX PTSA.IDX_MV_DASHBOARD_RESP
+ON PTSA.MV_DASHBOARD_CACHE (RESPCODE);
+
+CREATE INDEX PTSA.IDX_MV_DASHBOARD_INSTCODE
+ON PTSA.MV_DASHBOARD_CACHE (INSTITUTION_CODE);
+
+CREATE INDEX PTSA.IDX_MV_DASHBOARD_SOURCE1
+ON PTSA.MV_DASHBOARD_CACHE (SOURCE1);
+/
+ 
+
+/* ============================================================
+   5) CREATE SCHEDULER JOB (REFRESH EVERY 5 MINUTES)
+   ============================================================ */
+BEGIN
+    DBMS_SCHEDULER.CREATE_JOB (
+        job_name        => 'PTSA.REFRESH_MV_DASHBOARD_CACHE',
+        job_type        => 'PLSQL_BLOCK',
+        job_action      => q'[
+            BEGIN
+                DBMS_MVIEW.REFRESH(
+                    list           => 'PTSA.MV_DASHBOARD_CACHE',
+                    method         => 'C',
+                    atomic_refresh => FALSE
+                );
+            END;
+        ]',
+        start_date      => SYSTIMESTAMP,
+        repeat_interval => 'FREQ=MINUTELY;INTERVAL=5',
+        enabled         => TRUE,
+        comments        => 'Refresh dashboard cache MV every 5 minutes'
+    );
+END;
+/
